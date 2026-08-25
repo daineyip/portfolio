@@ -1,0 +1,8 @@
+@import 'tailwindcss';
+
+:root {
+  --paper: #fffdf7;
+  --desk: #f2ede3;
+  --accent: #ffd23f;
+  --alert: #d94f2b;
+}
