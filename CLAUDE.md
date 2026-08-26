@@ -20,7 +20,25 @@ from `data/tree.ts` set large in the lower right.
 ## Reference tech stack (for handoff/dev intent)
 - Next.js App Router; `app/layout.tsx` persistently hosts `<DesktopWrapper>` + `<Taskbar>` so navigation never unmounts the OS.
 - Tailwind CSS; Framer Motion (`motion.div` + `useDragControls`) for local 60fps X/Y drag physics; Zustand for global window state; Lucide React icons.
-- Content is MDX, compiled by `@next/mdx`. All prose styling lives in `mdx-components.tsx` at the repo root, so `.mdx` files carry no classes. That file also supplies a `<Signature>` component, usable in any `.mdx` without an import.
+- Content is MDX, compiled by `@next/mdx`. All prose styling lives in `mdx-components.tsx` at the repo root, so `.mdx` files carry no classes. That file also supplies `<Signature>` and `<Open id="node-id">`, usable in any `.mdx` without an
+import — `<Open>` opens a tree node in the desktop (folder, doc, link or app) instead
+of navigating, so a document can point at the rest of the OS.
+
+The `home` node is a `doc`, not a folder: it opens maximized as the read-me-first
+page that says where everything else lives.
+
+## Hover-to-locate (`useHint`)
+Hovering or focusing an `<Open>` link publishes the node id to `useHint`, a tiny
+store separate from `useWindowStore` — this is transient pointer feedback, not
+window state, and it churns on every mouseover. Whatever surface holds that node
+answers: `DesktopIcon` pulses (`.hint-tile` in `globals.css`, a radiating `--alert`
+ring that keeps the hard drop shadow), `MenuBar` lights the menu the item lives
+under (`.hint-ring`), and `DesktopWrapper` ghosts the whole windows layer to
+`opacity-20` when the target is a desktop icon — otherwise the maximized readme
+covers the very icon it is pointing at — while fading every *other* icon and
+shortcut to `opacity-25`, so one tile is left lit on a cleared desktop. Menu-bar targets skip the ghosting, since
+the bar is never covered. Both pulses fall back to a static ring under
+`prefers-reduced-motion`.
 
 ## State: `useWindowStore` (Zustand)
 ```ts

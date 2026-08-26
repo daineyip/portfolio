@@ -1,0 +1,98 @@
+# WorkInProgress
+
+**Co-founder & CEO** · Jan 2024 – Apr 2025 · Vancouver, BC
+
+WorkInProgress is an internship platform built by students, for students and the
+small-to-medium companies that hire them. Traditional job boards turned applying into a
+numbers game. There was mass applications on one side, keyword-matching ATS filters on the
+other, and neither side trusting what comes through. WIP replaced that with a curated
+brokerage, optimizing for relationships over resumes on a pool of verified candidates.
+
+I co-founded it and ran it as CEO: the strategic, product and operational calls were
+mine, from the initial specs through fundraising.
+
+## What I owned
+
+I ran product strategy, engineering delivery and go-to-market while leading a
+**six-person cross-functional team** of three developers, a designer and marketing. I
+also owned the fundraising and accelerator pipeline, writing the applications that took
+us to the finals of the **UBC Startups SOAR Pitch Competition** and within the **top 5% of applicants for Summer YC '25**
+
+On the product side I ran **75+ customer discovery interviews** — most of them at
+Vancouver Startup Week — to decode what recruiters actually struggle with, and turned
+those into the supply-side requirements that landed our first B2B partners. On the
+engineering side I worked directly on backend architecture, database modelling and
+analytics instrumentation.
+
+## What the product does
+
+Four pillars, each aimed at a specific failure of the job-board model:
+
+| Pillar | Focus | What it does |
+| --- | --- | --- |
+| **Application caps** | Intent | A hard quota on simultaneous active applications, so volume stops being a strategy |
+| **Institutional pipeline** | Verification | Mandatory `.edu` auth, mapping every profile to a verified school and grad date |
+| **Behavioral profiling** | Fit | Interpersonal and behavioral signals assessed before technical screening |
+| **Recruiter tools** | Throughput | Exclusive postings, candidate review, and async video screening |
+
+The application cap is the one that defines the product. Every other board makes money
+when students apply more; capping applications is what makes a curated pool possible,
+and it only works if the postings on the other side are worth the spend.
+
+## Traction
+
+- **250+ waitlist signups** from localized campus marketing, before a line of the
+  platform was live — demand validated before it was built
+- **0 → 500+ active users in 90 days** on an email-led GTM, reaching **600+ total
+  users** including **200+ verified** student profiles
+- **31% month-over-month growth** through the late-2024 launch cycle
+- **580+ internship postings** aggregated to bootstrap the demand side
+- **5 recruiters** onboarded into the pilot, securing **5 exclusive postings** and our
+  first paid corporate partner
+- **+15% signup conversion** by segmenting drop-off cohorts in Google Analytics and Tag
+  Manager, then interviewing users in the cohorts that leaked
+
+## Build
+
+Node.js and Express microservices behind a TypeScript and React frontend, on PostgreSQL
+hosted on Render, with media in Google Cloud Storage and identity through Firebase Auth.
+
+## What went wrong
+
+**The two-sided cold start.** We spent early cycles marketing to students and recruiters
+at once, which is the classic way to under-serve both. Recruiters were never going to
+show up before the candidates did, so we pivoted to an open internship board and a
+bi-weekly newsletter, pooled 600+ students on that alone, and used the pool to sell the
+partnerships.
+
+**Overestimating B2B software adoption.** The early product asked recruiters to adopt a
+new dashboard, manage API keys, and run candidates through a system outside their
+workflow. That's tool fatigue, not a value proposition. We abstracted the software away
+into a managed brokerage service, letting hiring managers offload filtering to us
+entirely.
+
+## What I'd do differently
+
+We were students building for students, and on that side of the marketplace our
+instincts were right more often than not. We had no
+equivalent instinct for recruiters, and we never fully closed that gap. We should have
+been sitting with them: shadowing a hiring manager through an actual day, going where
+they go, learning the job rather than interviewing about it.
+
+What crowded that out was building. We made almost everything in-house when we could
+have paid for it, and the time that bought us in ownership it cost us in research.
+ Being more capital-intensive earlier would have freed up capacity to find PMF in the recruiter segment.
+
+Recruiters live in
+Workday and Dayforce, and asking them to leave those systems for a second platform was
+a bigger ask than expected. A middleware layer might have been
+the answer: our application caps, institutional validation, and behavioral matching
+filtering candidates inside the ATS they already use, instead of asking them to come to
+us.
+
+---
+
+There's a <Open id="project-wip-demo">demo of the platform</Open> in this folder, along
+with photos of the <Open id="project-wip-founders">founders</Open> and the
+<Open id="project-wip-team">team</Open>. The product itself is at
+<Open id="project-wip-site">wipnetwork.ca</Open>.

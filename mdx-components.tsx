@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { MDXComponents } from 'mdx/types';
+import OpenLink from '@/components/OpenLink';
 
 /**
  * The one place MDX prose gets its neo-brutalist styling. Every .mdx file under
@@ -59,7 +60,8 @@ const prose: MDXComponents = {
     <img className="mb-4 max-w-full rounded-xl border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" alt="" {...p} />
   ),
 
-  /* Custom component, available to any .mdx without an import. */
+  /* Custom components, available to any .mdx without an import. */
+  Open: OpenLink,
   Signature: ({ children }: { children?: ReactNode }) => (
     <p className="mt-10 text-2xl font-black tracking-tight">— {children}</p>
   ),

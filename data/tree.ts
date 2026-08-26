@@ -3,18 +3,18 @@ import type { AppType } from '@/store/useWindowStore';
 
 import Bio from '@/content/identity/bio.mdx';
 import Motivation from '@/content/identity/motivation.mdx';
-import CompanyOneReadme from '@/content/work/company-one/readme.mdx';
-import CompanyOnePhotos from '@/content/work/company-one/photos.mdx';
-import CaseStudy from '@/content/projects/project-one/case-study.mdx';
-import Stack from '@/content/projects/project-one/stack.mdx';
-import Abstract from '@/content/research/topic-one/abstract.mdx';
-import Findings from '@/content/research/topic-one/findings.mdx';
-import Now from '@/content/home/now.mdx';
-import Uses from '@/content/home/uses.mdx';
-import Bookshelf from '@/content/home/bookshelf.mdx';
+import MarketerhireReadme from '@/content/work/marketerhire/readme.mdx';
+import BinanceReadme from '@/content/work/binance-us/readme.mdx';
+import OnwareReadme from '@/content/work/onware/readme.mdx';
+import DunroeReadme from '@/content/work/dunroe/readme.mdx';
+import WipReadme from '@/content/projects/workinprogress/readme.mdx';
+import OvalReadme from '@/content/projects/oval-updates/readme.mdx';
+import HyperscreenReadme from '@/content/projects/hyperscreen/readme.mdx';
+import SystopiaReadme from '@/content/research/systopia/readme.mdx';
+import HomeReadme from '@/content/home/readme.mdx';
 import Prd from '@/content/system/prd.mdx';
-import DesignSpec from '@/content/system/design-spec.mdx';
 import Changelog from '@/content/system/changelog.mdx';
+import Todo from '@/content/system/todo.mdx';
 import KilledProject from '@/content/trash/killed-project.mdx';
 
 /**
@@ -23,7 +23,7 @@ import KilledProject from '@/content/trash/killed-project.mdx';
  * inside its project folder and on the desktop.
  *
  * `label` is what the visitor sees and is deliberately independent of the
- * filename, so a node backed by now.mdx can read as `now.txt`.
+ * filename, so a node backed by readme.mdx can read as `Home`.
  */
 export type IconKey =
   | 'briefcase' | 'building' | 'user' | 'impact'
@@ -32,15 +32,28 @@ export type IconKey =
   | 'home' | 'clock' | 'wrench' | 'book'
   | 'trash' | 'skull'
   | 'monitor' | 'ruler' | 'history' | 'flame'
-  | 'file' | 'folder' | 'link' | 'globe' | 'mail' | 'github' | 'linkedin';
+  | 'file' | 'folder' | 'link' | 'globe' | 'mail' | 'github' | 'linkedin'
+  | 'video';
 
 interface NodeBase {
   id: string;
   label: string;
   /** Falls back to a per-kind default in components/NodeIcon.tsx. */
   icon?: IconKey;
+  /**
+   * A second line under the label, set small and muted. Used on the company
+   * folders to carry the years, so Work Experience reads as a timeline at a
+   * glance instead of only inside each readme.
+   */
+  meta?: string;
   /** A logo in public/. Takes precedence over `icon` when present. */
   image?: string;
+  /**
+   * How that logo fills its square tile. Default `cover` bleeds it edge to edge,
+   * which is what a square mark wants; `contain` is for a mark that isn't square
+   * and would otherwise be cropped.
+   */
+  imageFit?: 'cover' | 'contain';
   /** Docs only: render with a template other than the default reader. */
   app?: AppType;
   /**
@@ -54,10 +67,17 @@ export type Node =
   | (NodeBase & { kind: 'folder'; children: Node[] })
   | (NodeBase & { kind: 'doc'; Body: ComponentType })
   | (NodeBase & { kind: 'pdf'; src: string })
+  | (NodeBase & { kind: 'video'; src: string })
+  | (NodeBase & { kind: 'image'; src: string; alt?: string; caption?: string })
   | (NodeBase & { kind: 'app'; appType: AppType })
   | (NodeBase & { kind: 'link'; href: string });
 
 export const TREE: Node[] = [
+  /*
+   * Newest first. One folder per company: a readme plus whatever that work left
+   * behind. Every company logo is `contain` so the four tiles read as a set —
+   * each mark sits inside its tile rather than bleeding to the edges.
+   */
   {
     kind: 'folder',
     id: 'work',
@@ -66,22 +86,81 @@ export const TREE: Node[] = [
     children: [
       {
         kind: 'folder',
-        id: 'work-company-one',
-        label: 'Company One',
-        icon: 'building',
+        id: 'work-marketerhire',
+        label: 'MarketerHire',
+        meta: '2025 — Now',
+        image: '/MH_logo.png',
+        imageFit: 'contain',
         children: [
           {
             kind: 'doc',
-            id: 'work-company-one-readme',
+            id: 'work-marketerhire-readme',
             label: 'readme.mdx',
             icon: 'file',
             fullscreen: true,
-            Body: CompanyOneReadme,
+            Body: MarketerhireReadme,
           },
-          { kind: 'link', id: 'work-company-one-site', label: 'Product site', icon: 'globe', href: 'https://example.com' },
-          { kind: 'link', id: 'work-company-one-figma', label: 'Figma', icon: 'palette', href: 'https://figma.com' },
-          { kind: 'doc', id: 'work-company-one-photos', label: 'photos.mdx', icon: 'image', Body: CompanyOnePhotos },
-          { kind: 'link', id: 'work-company-one-onepager', label: 'one-pager.pdf', icon: 'document', href: '/company-one-one-pager.pdf' },
+          { kind: 'link', id: 'work-marketerhire-site', label: 'marketerhire.com/mh1', icon: 'globe', href: 'https://marketerhire.com/mh1' },
+        ],
+      },
+      {
+        kind: 'folder',
+        id: 'work-binance',
+        label: 'Binance.US',
+        meta: '2023',
+        image: '/Binance_Logo.png',
+        imageFit: 'contain',
+        children: [
+          {
+            kind: 'doc',
+            id: 'work-binance-readme',
+            label: 'readme.mdx',
+            icon: 'file',
+            fullscreen: true,
+            Body: BinanceReadme,
+          },
+          { kind: 'link', id: 'work-binance-staking', label: 'Staking', icon: 'impact', href: 'https://www.binance.us/staking' },
+          { kind: 'link', id: 'work-binance-walletconnect', label: 'WalletConnect guide', icon: 'book', href: 'https://www.binance.com/en/academy/articles/how-to-use-walletconnect' },
+          { kind: 'link', id: 'work-binance-site', label: 'binance.us', icon: 'globe', href: 'https://www.binance.us' },
+        ],
+      },
+      {
+        kind: 'folder',
+        id: 'work-onware',
+        label: 'Onware Inc.',
+        meta: '2022',
+        image: '/onware_logo.png',
+        imageFit: 'contain',
+        children: [
+          {
+            kind: 'doc',
+            id: 'work-onware-readme',
+            label: 'readme.mdx',
+            icon: 'file',
+            fullscreen: true,
+            Body: OnwareReadme,
+          },
+          { kind: 'link', id: 'work-onware-tableau', label: 'Tableau consulting', icon: 'impact', href: 'https://onware.com/tableau/' },
+          { kind: 'link', id: 'work-onware-site', label: 'onware.com', icon: 'globe', href: 'https://onware.com' },
+        ],
+      },
+      {
+        kind: 'folder',
+        id: 'work-dunroe',
+        label: 'Dunroe.io',
+        meta: '2021',
+        image: '/dunroe.png',
+        imageFit: 'contain',
+        children: [
+          {
+            kind: 'doc',
+            id: 'work-dunroe-readme',
+            label: 'readme.mdx',
+            icon: 'file',
+            fullscreen: true,
+            Body: DunroeReadme,
+          },
+          { kind: 'link', id: 'work-dunroe-site', label: 'dunroe.io', icon: 'globe', href: 'https://dunroe.io' },
         ],
       },
     ],
@@ -92,29 +171,123 @@ export const TREE: Node[] = [
     label: 'Projects',
     icon: 'layers',
     children: [
+      /* These three marks already fill a square, so they bleed to the tile edge —
+         the same way they read as shortcuts on the desktop. */
       {
         kind: 'folder',
-        id: 'project-one',
-        label: 'project-one',
-        icon: 'package',
+        id: 'project-oval',
+        label: 'Oval Updates',
+        meta: '2026',
+        image: '/bot-avatar.png',
         children: [
-          { kind: 'doc', id: 'project-one-case', label: 'case-study.mdx', icon: 'file', Body: CaseStudy },
-          { kind: 'doc', id: 'project-one-stack', label: 'stack.mdx', icon: 'layers', Body: Stack },
-          { kind: 'link', id: 'project-one-live', label: 'live', icon: 'globe', href: 'https://example.com' },
+          {
+            kind: 'doc',
+            id: 'project-oval-readme',
+            label: 'readme.mdx',
+            icon: 'file',
+            fullscreen: true,
+            Body: OvalReadme,
+          },
+          { kind: 'link', id: 'project-oval-site', label: 'ovalupdates.com', icon: 'globe', href: 'https://www.ovalupdates.com' },
+        ],
+      },
+      {
+        kind: 'folder',
+        id: 'project-hyperscreen',
+        label: 'Hyperscreen',
+        meta: '2025',
+        image: '/amazon_logo.jpg',
+        children: [
+          {
+            kind: 'doc',
+            id: 'project-hyperscreen-readme',
+            label: 'readme.mdx',
+            icon: 'file',
+            fullscreen: true,
+            Body: HyperscreenReadme,
+          },
+          {
+            kind: 'pdf',
+            id: 'project-hyperscreen-brd',
+            label: 'business-requirements.pdf',
+            icon: 'document',
+            fullscreen: true,
+            src: '/brd.pdf',
+          },
+          {
+            kind: 'pdf',
+            id: 'project-hyperscreen-tor',
+            label: 'terms-of-reference.pdf',
+            icon: 'document',
+            fullscreen: true,
+            src: '/prd.pdf',
+          },
+          {
+            kind: 'pdf',
+            id: 'project-hyperscreen-design',
+            label: 'internal-design.pdf',
+            icon: 'document',
+            fullscreen: true,
+            src: '/technicaldesign.pdf',
+          },
+          { kind: 'link', id: 'project-hyperscreen-repo', label: 'Team-4-Amazon', icon: 'github', href: 'https://github.com/CPSC319-2025/Team-4-Amazon' },
+        ],
+      },
+      {
+        kind: 'folder',
+        id: 'project-wip',
+        label: 'WorkInProgress',
+        meta: '2024 — 2025',
+        image: '/wip-logo.png',
+        children: [
+          {
+            kind: 'doc',
+            id: 'project-wip-readme',
+            label: 'readme.mdx',
+            icon: 'file',
+            fullscreen: true,
+            Body: WipReadme,
+          },
+          {
+            kind: 'video',
+            id: 'project-wip-demo',
+            label: 'demo.mp4',
+            icon: 'video',
+            src: '/wip-demo.mp4',
+          },
+          {
+            kind: 'image',
+            id: 'project-wip-founders',
+            label: 'founders.png',
+            icon: 'image',
+            src: '/founders.png',
+            alt: 'The WorkInProgress founding team at a restaurant patio in downtown Vancouver',
+          },
+          {
+            kind: 'image',
+            id: 'project-wip-team',
+            label: 'team.jpg',
+            icon: 'image',
+            src: '/team.jpg',
+            alt: 'The six-person WorkInProgress team at an indoor kart-racing track',
+          },
+          { kind: 'link', id: 'project-wip-site', label: 'wipnetwork.ca', icon: 'globe', href: 'https://www.wipnetwork.ca' },
         ],
       },
     ],
   },
+
+  /*
+   * Home is a document, not a folder: it is the one thing a visitor should read
+   * first, so it opens maximized and explains where everything else lives.
+   */
   {
-    kind: 'folder',
+    kind: 'doc',
     id: 'home',
     label: 'Home',
     icon: 'home',
-    children: [
-      { kind: 'doc', id: 'home-now', label: 'now.txt', icon: 'clock', Body: Now },
-      { kind: 'doc', id: 'home-uses', label: 'uses.mdx', icon: 'wrench', Body: Uses },
-      { kind: 'doc', id: 'home-bookshelf', label: 'bookshelf.mdx', icon: 'book', Body: Bookshelf },
-    ],
+    fullscreen: true,
+    Body: HomeReadme,
   },
   {
     kind: 'folder',
@@ -124,16 +297,35 @@ export const TREE: Node[] = [
     children: [
       {
         kind: 'folder',
-        id: 'research-topic-one',
-        label: 'topic-one',
-        icon: 'notebook',
+        id: 'research-systopia',
+        label: 'UBC Systopia Lab',
+        meta: '2025',
+        image: '/systopia_logo.png',
+        /* 579x886 — a portrait mark, so it must be contained, never cropped. */
+        imageFit: 'contain',
         children: [
-          { kind: 'doc', id: 'research-topic-one-abstract', label: 'abstract.mdx', icon: 'file', Body: Abstract },
-          { kind: 'doc', id: 'research-topic-one-findings', label: 'findings.mdx', icon: 'impact', Body: Findings },
+          {
+            kind: 'doc',
+            id: 'research-systopia-readme',
+            label: 'readme.mdx',
+            icon: 'file',
+            fullscreen: true,
+            Body: SystopiaReadme,
+          },
+          {
+            kind: 'pdf',
+            id: 'research-systopia-paper',
+            label: 'final-report.pdf',
+            icon: 'document',
+            fullscreen: true,
+            src: '/researchpaper.pdf',
+          },
+          { kind: 'link', id: 'research-systopia-repo', label: 'TLA+ specs', icon: 'github', href: 'https://github.com/daineyip/TLA' },
         ],
       },
     ],
   },
+
   {
     kind: 'folder',
     id: 'trash',
@@ -151,8 +343,8 @@ export const TREE: Node[] = [
     label: 'About This Desktop',
     icon: 'monitor',
     children: [
-      { kind: 'doc', id: 'system-prd', label: 'prd.mdx', icon: 'file', Body: Prd },
-      { kind: 'doc', id: 'system-design-spec', label: 'design-spec.mdx', icon: 'ruler', Body: DesignSpec },
+      { kind: 'doc', id: 'system-prd', label: 'prd.mdx', icon: 'file', fullscreen: true, Body: Prd },
+      { kind: 'doc', id: 'system-todo', label: 'TODO.mdx', icon: 'wrench', Body: Todo },
       { kind: 'doc', id: 'system-changelog', label: 'changelog.mdx', icon: 'history', Body: Changelog },
     ],
   },
@@ -197,7 +389,7 @@ export const TREE: Node[] = [
     label: 'Resume',
     icon: 'document',
     fullscreen: true,
-    src: '/DaineResume_Product.pdf',
+    src: '/resume.pdf',
   },
   { kind: 'link', id: 'link-github', label: 'GitHub', icon: 'github', href: 'https://github.com/daineyip' },
   { kind: 'link', id: 'link-linkedin', label: 'LinkedIn', icon: 'linkedin', href: 'https://www.linkedin.com/in/daineyip/' },

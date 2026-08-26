@@ -24,6 +24,7 @@ import {
   Trash2,
   TrendingUp,
   User,
+  Video,
   Wrench,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -31,6 +32,15 @@ import type { IconKey, Node } from '@/data/tree';
 import { GithubMark, LinkedinMark } from './icons';
 
 type Glyph = ComponentType<{ className?: string; strokeWidth?: number }>;
+
+/**
+ * How a node's logo fills its square tile, shared by the desktop icon and the
+ * readme stamp so the two can never drift: `contain` insets a mark that would
+ * otherwise be cropped, and anything else bleeds to the edge.
+ */
+export function logoFit(node: Pick<Node, 'imageFit'>): string {
+  return node.imageFit === 'contain' ? 'object-contain p-1.5' : 'object-cover';
+}
 
 const REGISTRY: Record<IconKey, Glyph> = {
   briefcase: Briefcase,
@@ -61,6 +71,7 @@ const REGISTRY: Record<IconKey, Glyph> = {
   mail: Mail,
   github: GithubMark,
   linkedin: LinkedinMark,
+  video: Video,
 };
 
 /** What a node falls back to when it names no icon of its own. */
@@ -68,6 +79,8 @@ const BY_KIND: Record<Node['kind'], IconKey> = {
   folder: 'folder',
   doc: 'file',
   pdf: 'document',
+  video: 'video',
+  image: 'image',
   app: 'mail',
   link: 'link',
 };

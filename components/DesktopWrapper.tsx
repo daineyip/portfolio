@@ -2,16 +2,29 @@
 
 import { useRef } from 'react';
 import { DESKTOP, GREETING, SHORTCUTS, findNode, type Node } from '@/data/tree';
+import { useHint } from '@/store/useHint';
 import { useWindowStore } from '@/store/useWindowStore';
 import AppWindow from './AppWindow';
 import DesktopIcon from './DesktopIcon';
 import AppBody from './apps/AppBody';
+import { useLateNight } from './useLateNight';
 import { useOpenNode } from './useOpenNode';
 
 export default function DesktopWrapper() {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const windows = useWindowStore((s) => s.windows);
   const openNode = useOpenNode();
+  const hintId = useHint((s) => s.hintId);
+  const late = useLateNight();
+  /*
+   * A document pointing at a desktop icon is usually the maximized Home readme,
+   * sitting on top of the very icon it names. Ghost the windows while the pointer
+   * rests on the link so the pulse underneath is actually visible; menu-bar
+   * targets need none of this, since the bar is never covered.
+   */
+  const peeking = Boolean(hintId && (DESKTOP.includes(hintId) || SHORTCUTS.includes(hintId)));
+  /* While peeking, everything on the desktop but the named icon recedes. */
+  const dim = (id: string) => (peeking && id !== hintId ? 'opacity-25' : 'opacity-100');
 
   const resolve = (ids: string[]) => ids.map((id) => findNode(id)).filter((n): n is Node => Boolean(n));
   const icons = resolve(DESKTOP);
@@ -27,16 +40,31 @@ export default function DesktopWrapper() {
         <span className="absolute bottom-24 left-[30%] h-14 w-44 -rotate-2 rounded-2xl border-[3px] border-black bg-black" />
       </div>
 
+      {/* 2am to 5am, the visitor's time. */}
+      {late && (
+        <p
+          aria-hidden
+          className="pointer-events-none absolute inset-0 flex items-center justify-center
+                     font-mono text-2xl font-bold tracking-tight text-black"
+        >
+          GO TO SLEEP
+        </p>
+      )}
+
       <div className="relative flex w-24 flex-col items-start gap-6">
         {icons.map((node) => (
-          <DesktopIcon key={node.id} node={node} onOpen={openNode} />
+          <div key={node.id} className={`transition-opacity duration-200 ${dim(node.id)}`}>
+            <DesktopIcon node={node} onOpen={openNode} />
+          </div>
         ))}
       </div>
 
       {/* Deployed sites, pinned down the right edge. */}
       <div className="absolute right-7 top-16 flex w-24 flex-col items-center gap-6">
         {shortcuts.map((node) => (
-          <DesktopIcon key={node.id} node={node} onOpen={openNode} />
+          <div key={node.id} className={`transition-opacity duration-200 ${dim(node.id)}`}>
+            <DesktopIcon node={node} onOpen={openNode} />
+          </div>
         ))}
       </div>
 
@@ -58,7 +86,11 @@ export default function DesktopWrapper() {
       */}
       {/* pointer-events-none so this full-desktop layer doesn't swallow clicks meant
           for the icons beneath it; each window re-enables them for itself. */}
-      <div ref={workspaceRef} className="pointer-events-none absolute bottom-14 left-7 right-7 top-12">
+      <div
+        ref={workspaceRef}
+        className={`pointer-events-none absolute bottom-14 left-7 right-7 top-12 transition-opacity duration-200
+                    ${peeking ? 'opacity-20' : 'opacity-100'}`}
+      >
         {/* Closed windows stay mapped so AppWindow's own AnimatePresence can play their exit. */}
         {windows.map((w, i) => (
           <AppWindow

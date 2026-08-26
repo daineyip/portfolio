@@ -1,0 +1,50 @@
+# TODO
+
+What's next for this desktop, roughly in the order I'd build it.
+
+## Window snapping
+
+- Left/right edge → half the workspace, with a preview outline before release
+- Top edge → maximize, same path as the green Expand control
+- Corners → quarter tiles, once halves work
+- Snapping has to respect the workspace inset, not the viewport — the same boundary
+  `constraintsRef` already defines, so a snapped window still clears the taskbar
+
+## Keyboard shortcuts
+
+Right now everything needs a pointer, which is a strange thing to say about an OS.
+
+- `Cmd/Ctrl+K` — search the tree by label and open whatever you pick. `findNode` already
+  walks the tree, so the palette is mostly UI
+- `Cmd+M` — minimize the focused window
+- `Cmd+Enter` — maximize and restore, same path as the green control
+- `Esc` — close the focused window
+- `Cmd+\`` — cycle focus through open windows, most recent first
+- Arrow keys through the Explorer grid, `Enter` to open, `Cmd+Up` for up one level
+
+Two things to sort out first. The browser owns `Cmd+W`, `Cmd+T` and `Cmd+N` and won't
+give them back, so close has to live somewhere else and `Esc` is the honest choice.
+And `Space` is already play/pause in the video player, so anything global needs to
+check what's focused before it fires.
+
+Shortcuts nobody knows about may as well not exist, so this needs a `?` overlay listing
+them, and probably a hint somewhere on first visit.
+
+## Dark mode
+
+The palette already lives in `app/globals.css` as tokens — `--paper`, `--desk`,
+`--accent`, `--alert`, `--ok` — so a dark theme is mostly a second set of values rather
+than a rewrite. The work is in the details the tokens don't cover:
+
+- The hard black drop shadows are the whole visual language, and black-on-dark reads as
+  nothing. They need a light shadow colour, not a removed one
+- The `border-[3px]` black borders have the same problem
+- The wallpaper dot grid needs its own contrast pass
+- Respect `prefers-color-scheme` on first visit, then let a menu-bar toggle override it
+  and remember the choice
+
+## Smaller things
+
+- A window that remembers its size per app type, so the reader opens tall and the image
+  viewer opens wide
+- Boring Mode deserves a real design pass rather than being the fallback

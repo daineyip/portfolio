@@ -16,3 +16,46 @@
   background-image: radial-gradient(var(--dot) 1.5px, transparent 1.5px);
   background-size: 22px 22px;
 }
+
+/* Hover-to-locate feedback: a radiating accent ring, in the same language as the
+   "live" status dot. Two variants because desktop tiles must keep their hard drop
+   shadow while they pulse — an animated box-shadow replaces the class outright. */
+@keyframes hint-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--alert) 60%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+@keyframes hint-tile {
+  0%,
+  100% {
+    box-shadow: 4px 4px 0 0 #000, 0 0 0 0 color-mix(in srgb, var(--alert) 60%, transparent);
+  }
+  50% {
+    box-shadow: 4px 4px 0 0 #000, 0 0 0 14px transparent;
+  }
+}
+
+.hint-ring {
+  animation: hint-ring 1.05s ease-out infinite;
+}
+
+.hint-tile {
+  animation: hint-tile 1.05s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint-ring {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--alert);
+  }
+
+  .hint-tile {
+    animation: none;
+    box-shadow: 4px 4px 0 0 #000, 0 0 0 3px var(--alert);
+  }
+}

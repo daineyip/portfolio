@@ -1,0 +1,72 @@
+# UBC Systopia Lab
+
+**Undergraduate research (CPSC 448)** · Winter Term 1, 2025 · Supervised by Prof. Ivan
+Beschastnikh
+
+Formal modelling of Byzantine fault tolerant consensus — a specification of PBFT
+written in TLA+/PlusCal, verified with the TLC model checker, and structured so it can
+eventually be compiled into Go by PGo.
+
+## Why bother formalizing a protocol
+
+A Byzantine fault tolerant system can maintain correctness even when participants lie: with `n = 3f + 1` replicas, every correct replica must still reach the same
+decision while up to `f` deviate arbitrarily. However, the implementations of BFT protocols in standard programming languages is prone to 
+concurrency bugs, race conditions, deadlocks, and
+shared-memory corruption, none of which standard testing reliably surfaces. Therefore, bridging the gap between formal theory and executable code using formal verification tools such as TLA+ and PGo is critical for blockchain consensus algorithms. 
+
+TLA+ verifies the design mathematically; PGo compiles Modular PlusCal into runnable
+Go. Together they close the gap between a proof and the code that ships.
+
+## How I built it
+
+Complexity layering — start with the smallest thing that can be verified, then add one
+source of complexity at a time, so each bug surfaces in the simplest model that can
+still produce it:
+
+1. **Echo protocol** — single sender, single server. Establishes message passing,
+   state transitions and correct termination.
+2. **Broadcast and leader logic** — a designated leader replica broadcasting to its
+   backups, the primary→backups pattern PBFT's pre-prepare phase needs.
+3. **The PBFT state machine** — pre-prepare, prepare and commit as distinct phases,
+   with the quorum arithmetic (`2f + 1`) that moves a replica between them.
+4. **Concurrent clients** — the final model, `PBFTconcurrentClient.tla`, where
+   multiple requests move through consensus interleaved.
+
+## What verification actually caught
+
+**Head-of-line blocking.** Strictly sequential processing deadlocked: a replica
+awaiting a `prepare` message at the head of its inbox stalls forever if a slower peer's
+`commit` arrives first. The fix was architectural — a *message pump* that drains the
+inbox on arrival regardless of type into a local received log, with state transitions
+recalculated by monitoring that log rather than reacting to whatever arrived next.
+
+**Shared-buffer corruption.** A global `msg_struct` used for message assembly let one
+replica overwrite another's payload mid-broadcast. Refactoring every temporary buffer
+into a process-local variable restored memory isolation between threads.
+
+**Per-transaction state.** With concurrent clients, a replica can be committed for
+sequence #1 while only pre-prepared for #2, which a single global state flag cannot
+represent. It became a sequence-indexed state map, so progress on one transaction
+can't disturb the finalization of another.
+
+## What it proves, and what it doesn't
+
+Verification completed at 2 replicas and 2 clients in roughly seven minutes. At three
+or four, the reachability graph outgrew the machine and the TLA+ Toolbox exhausted RAM
+and crashed. That boundary matters, so it's worth stating: the model is a
+proof of the state machine and the concurrency logic, **not** of the Byzantine
+threshold, which needs `N = 4`. It also exercises the happy flow rather than quorum
+progress under silence, omits the view-change protocol, abstracts cryptography to
+authenticated channels, and has no deterministic fault injection.
+
+## Next
+
+Simulation mode and a bigger TLC allocation to reach `N = 4`; refactoring the
+specification into Modular PlusCal so PGo can generate a Go prototype; encoding the
+invariants from the original OSDI '99 paper; and a fault-injection harness that forces
+chosen replicas to misbehave on cue.
+
+---
+
+The <Open id="research-systopia-paper">full report</Open> is in this folder, and the
+specifications are on <Open id="research-systopia-repo">GitHub</Open>.

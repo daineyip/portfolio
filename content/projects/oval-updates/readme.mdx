@@ -1,0 +1,61 @@
+# Oval Updates
+
+**Solo build** · 2026 – present
+
+A single Trump post can move billions in minutes. Oval Updates watches everything he
+and the White House put out, from Truth Social posts to press releases, and when something market-relevant lands it sends a Telegram alert
+with the affected tickers, a one-line trader's take, an estimated move probability, and
+a directional confidence.
+
+## The problem
+
+The posts that matter arrive at all hours, buried in a firehose of ceremonial messages,
+political grievances, and rhetoric irrelevant to the market. They're easy to miss and hard to
+act on quickly.
+
+## What an alert looks like
+
+```
+Alert: Trump threatens to cancel Boeing Air Force One deal
+Source: Truth Social
+Est. relevance: 73% (company action)
+Sentiment: Bearish
+Context: Trump attacked Boeing over Air Force One cost overruns and floated
+         canceling the contract.
+Recommendation: Watch BA for downside on contract-risk headlines; attacks like
+                this have historically been short-lived.
+
+Tickers:
+• $BA (Boeing) — Directly named; contract-cancellation threat.
+```
+
+## Two numbers, not one
+
+**Est. relevance** asks whether the post moves anything at all.
+**Directional confidence** asks whether we know which way, given a move. 
+
+## Calibrated on 132 labeled events
+
+I hand-labeled **132 historical Trump and White House events** with what the market
+actually did, by category, and derived per-category base rates that anchor the model's
+scoring rather than letting it guess.
+
+## The pipeline
+
+```
+Truth Social ┐
+WH actions   ├─▶ trigger.dev (every 15 min) ─▶ Gemini (2-stage) ─▶ score & gate ─▶ Telegram
+WH news      ┘        dedupe, no database        relevance + direction
+```
+
+Two stages, for cost as much as accuracy. A **gate** model scores every post and decides
+alert-or-skip, tuned for recall so it almost never misses a real mover. The **analyst**
+(Gemini 2.5 Pro) runs only on the ~25% that survive, producing the tickers and direction
+in the alert body.
+
+**Stack:** TypeScript (ESM, Node 22) · trigger.dev v4 · Google Gemini
+(`2.5-flash-lite` gate + `2.5-pro` analyst) · fast-xml-parser · Telegram Bot API.
+
+## Honest limitations
+
+Estimating market direction is hard and unreliable. Oval Updates acts as an alert, rather than a trade signal.

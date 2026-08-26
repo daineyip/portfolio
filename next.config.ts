@@ -7,8 +7,14 @@ const nextConfig: NextConfig = {
   pageExtensions: ['ts', 'tsx', 'mdx'],
 };
 
-// No remark/rehype plugins on purpose: Turbopack requires plugins to be named
-// by string rather than passed as functions, and we need none of them.
-const withMDX = createMDX({});
+// Tables, strikethrough and autolinks are GitHub-flavoured Markdown, not core
+// Markdown, so `.mdx` needs remark-gfm to see them at all — without it a table
+// silently renders as paragraphs of pipes. Turbopack requires plugins named by
+// string rather than passed as functions, hence the ['remark-gfm'] form.
+const withMDX = createMDX({
+  options: {
+    remarkPlugins: [['remark-gfm']],
+  },
+});
 
 export default withMDX(nextConfig);

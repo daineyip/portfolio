@@ -1,12 +1,16 @@
 'use client';
 
 import type { Node } from '@/data/tree';
-import { glyphFor } from './NodeIcon';
+import { useHint } from '@/store/useHint';
+import { glyphFor, logoFit } from './NodeIcon';
 
+/* A contained logo shows its tile behind it, so that one gets the paper face. */
 const FACE: Record<Node['kind'], string> = {
   folder: 'bg-[#ffd23f]',
   doc: 'bg-[#fffdf7]',
   pdf: 'bg-[#fffdf7]',
+  video: 'bg-[#fffdf7]',
+  image: 'bg-[#fffdf7]',
   app: 'bg-[#fffdf7]',
   link: 'bg-[#fffdf7]',
 };
@@ -20,20 +24,22 @@ interface Props {
 
 export default function DesktopIcon({ node, onOpen, size = 'desk' }: Props) {
   const Glyph = glyphFor(node);
-  /* Square tiles so square logos fill them without cropping. */
-  const box = size === 'desk' ? 'h-16 w-16' : 'h-12 w-12';
-  const glyph = size === 'desk' ? 'h-7 w-7' : 'h-6 w-6';
+  /* Pulses while a document elsewhere points at this node. */
+  const hinted = useHint((s) => s.hintId === node.id);
+  /* Square tiles; a logo of any aspect is contained inside one. */
+  const box = size === 'desk' ? 'h-14 w-14' : 'h-11 w-11';
+  const glyph = size === 'desk' ? 'h-6 w-6' : 'h-5 w-5';
 
   return (
     <button onClick={() => onOpen(node)} className="group flex w-24 flex-col items-center gap-2">
       <span
         className={`relative flex ${box} items-center justify-center overflow-hidden rounded-xl border-[3px] border-black
                     shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform group-hover:-translate-y-0.5
-                    ${FACE[node.kind]}`}
+                    ${node.imageFit === 'contain' ? 'bg-[#fffdf7]' : FACE[node.kind]} ${hinted ? 'hint-tile -translate-y-0.5' : ''}`}
       >
         {node.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={node.image} alt="" className="h-full w-full object-cover" />
+          <img src={node.image} alt="" className={`h-full w-full ${logoFit(node)}`} />
         ) : (
           <Glyph className={glyph} strokeWidth={2.5} />
         )}
@@ -44,7 +50,20 @@ export default function DesktopIcon({ node, onOpen, size = 'desk' }: Props) {
           </span>
         )}
       </span>
-      <span className="text-center font-mono text-[11px] font-bold leading-tight">{node.label}</span>
+      <span className="flex flex-col items-center gap-0.5">
+        <span
+          className={`rounded px-1 text-center font-mono text-[11px] font-bold leading-tight
+                      ${hinted ? 'bg-[#ffd23f]' : ''}`}
+        >
+          {node.label}
+        </span>
+        {/* The years, where a node carries them — recency without opening the doc. */}
+        {node.meta && (
+          <span className="px-1 text-center font-mono text-[10px] font-bold leading-tight opacity-55">
+            {node.meta}
+          </span>
+        )}
+      </span>
     </button>
   );
 }

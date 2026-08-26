@@ -34,6 +34,16 @@ export function useOpenNode() {
         case 'pdf':
           openWindow(`pdf:${node.id}`, node.label, 'pdf', node.id, { maximized: node.fullscreen });
           break;
+        case 'image':
+          openWindow(`image:${node.id}`, node.label, 'image', node.id, {
+            maximized: node.fullscreen,
+          });
+          break;
+        case 'video':
+          openWindow(`video:${node.id}`, node.label, 'video', node.id, {
+            maximized: node.fullscreen,
+          });
+          break;
         case 'link':
           window.open(node.href, '_blank', 'noopener,noreferrer');
           break;

@@ -1,17 +1,48 @@
 # Portfolio OS — PRD
 
-## Problem
+It felt wrong to build a portfolio around product work and then not write the doc.
 
-A conventional portfolio shows output but not judgement. TODO — sharpen.
+## Why
 
-## Goals
+Most portfolios are a list. Here's where I worked, here's what I shipped.
+I built this desktop so that you can understand how I think and how I approach problems.
 
-- TODO
+Also I wanted to build it.
 
-## Non-goals
+## A few user stories
 
-- TODO
+**Recruiter**
+- I want to see where someone worked and when without opening anything, so I can judge
+  recency at a glance
+- I want the newest thing first, so I'm not sorting by date in my head
+- I want the resume in one click, because that's what I came for
 
-## Success metrics
+**Hiring manager**
+- I want each role to open into actual artifacts, so I can check a claim instead of
+  trusting it
+- I want to look at organized information, so I can easily understand what supporting documents relate to what role
 
-- TODO
+**Engineer**
+- I want two windows side by side to compare documents against each other
+- I want a performant and responsive experience
+
+**First-timer**
+- I want something telling me where to start, so an unfamiliar interface doesn't turn
+  into a puzzle
+- I want a normal page on my phone
+- I want to the interface to be intuitive to me, so it's easy to navigate and learn
+
+## How it's built
+
+Next.js App Router. The layout holds the desktop and taskbar permanently, so nothing
+unmounts when you navigate.
+
+Zustand owns the window list: id, title, type, minimized,
+maximized, z-index. Position stays local to each window as a motion value.
+
+Framer Motion handles dragging and animations.
+
+Content is MDX. All the prose styling lives in one file at the root, so the .mdx files
+are just writing. Labels and ordering are TypeScript.
+
+No backend... for now.

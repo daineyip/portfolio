@@ -1,0 +1,51 @@
+# HyperScreen
+
+**Project Manager · Amazon Capstone** · Jan 2025 – Apr 2025 · Vancouver, BC
+
+AWS Vancouver postings routinely draw **750+ applicants**, and AI application tools
+like Simplify and AIApply have made that number a trend rather than a spike. HyperScreen
+is the screening platform we built for their recruiters and hiring managers: applicants
+apply through a public portal, hiring managers set weighted scoring criteria per
+posting, and the system ranks the pool so first-round screening starts from a shortlist
+instead of a stack. The target was a **50% cut in screening time** without trading away
+hire quality.
+
+## What I owned
+
+I ran the requirements and the release plan: the terms of reference, the business
+requirements document, the project plan, and the module-by-module schedule the seven
+engineers built against.
+
+I assigned **every task to two people**. On a team where
+everyone has a full course-load, a member going dark during midterm season
+ needs to be a risk mitigated from the start. Pairing every task made that survivable by design.
+
+## Scope
+
+Four modules, each with its own design, dev and release dates:
+
+| Module | What it does | Target release |
+| --- | --- | --- |
+| Applicant | Public, no-auth job search and application with resume upload | Feb 17 |
+| Hiring Manager | Create postings, set and prioritize scoring criteria, evaluate and rank | Feb 17 |
+| Recruiter/Admin | Hiring-manager onboarding and accounts, master scoring criteria, launch evaluations | Mar 14 |
+| Reporting | Applicant counts, rankings, per-applicant detail, exports and visualizations | Mar 14 |
+
+## Success metrics
+
+I defined the metrics against manual screening:
+
+- **75%** of applicants scoring above 80 should also be green-lit by first-round manual
+  screening.
+- **50%** of HyperScreen hires still employed after one year.
+- **50%** reduction in average screening time, with all user actions responding in
+  **under 2 seconds**
+
+## Build
+
+Django 5 with DRF over PostgreSQL 17, a Next.js 15 / React 19 frontend in TypeScript
+and Tailwind, and django-q2 running resume evaluation as background jobs. Production is
+four Docker containers behind nginx, with the frontend, backend and database on a shared
+ internal network. Resume parsing ran
+through PyMuPDF and python-docx, and scoring ran on a local **Ollama** model to keep
+inference free.

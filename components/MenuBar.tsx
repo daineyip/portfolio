@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { MENU_BAR, STATUS, STATUS_OPTIONS, findNode, type Node } from '@/data/tree';
+import { useHint } from '@/store/useHint';
 import { glyphFor } from './NodeIcon';
 import { useOpenNode } from './useOpenNode';
 
@@ -48,6 +49,8 @@ export default function MenuBar() {
   const [open, setOpen] = useState<string | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const openNode = useOpenNode();
+  /* A document pointing at Bio or Resume should light up the menu it lives under. */
+  const hintId = useHint((s) => s.hintId);
 
   useEffect(() => {
     if (!open) return;
@@ -79,13 +82,17 @@ export default function MenuBar() {
         const nodes = menu.items.map((id) => findNode(id)).filter((n): n is Node => Boolean(n));
         if (nodes.length === 0) return null;
 
+        const hinted = Boolean(hintId && menu.items.includes(hintId));
+
         // A menu with one destination is a plain button, not a dropdown.
         if (nodes.length === 1) {
           return (
             <button
               key={menu.label}
               onClick={() => choose(nodes[0])}
-              className="rounded-lg border-2 border-transparent px-2 py-0.5 font-mono text-xs font-bold hover:border-black hover:bg-[#ffd23f]"
+              className={`rounded-lg border-2 px-2 py-0.5 font-mono text-xs font-bold hover:border-black hover:bg-[#ffd23f] ${
+                hinted ? 'hint-ring border-black bg-[#ffd23f]' : 'border-transparent'
+              }`}
             >
               {menu.label}
             </button>
@@ -98,8 +105,8 @@ export default function MenuBar() {
             <button
               onClick={() => setOpen(isOpen ? null : menu.label)}
               className={`rounded-lg border-2 px-2 py-0.5 font-mono text-xs font-bold ${
-                isOpen ? 'border-black bg-[#ffd23f]' : 'border-transparent hover:border-black hover:bg-[#ffd23f]'
-              }`}
+                isOpen || hinted ? 'border-black bg-[#ffd23f]' : 'border-transparent hover:border-black hover:bg-[#ffd23f]'
+              } ${hinted ? 'hint-ring' : ''}`}
             >
               {menu.label}
             </button>
@@ -112,7 +119,9 @@ export default function MenuBar() {
                     <button
                       key={node.id}
                       onClick={() => choose(node)}
-                      className="flex w-full items-center justify-between gap-4 px-3 py-1.5 text-left font-mono text-xs hover:bg-[#ffd23f]"
+                      className={`flex w-full items-center justify-between gap-4 px-3 py-1.5 text-left font-mono text-xs hover:bg-[#ffd23f] ${
+                        node.id === hintId ? 'bg-[#ffd23f]' : ''
+                      }`}
                     >
                       <span className="flex items-center gap-2">
                         <Glyph className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />

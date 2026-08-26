@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AppType = 'explorer' | 'reader' | 'pdf' | 'bio' | 'inbox';
+export type AppType = 'explorer' | 'reader' | 'pdf' | 'video' | 'image' | 'bio' | 'inbox';
 
 /** A folder an Explorer window can be pointed at. */
 export interface NavEntry {
