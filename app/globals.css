@@ -5,4 +5,14 @@
   --desk: #f2ede3;
   --accent: #ffd23f;
   --alert: #d94f2b;
+  --ok: #35c46a;
+  --dot: #d8cfbe;
+}
+
+/* Flat base plus a hard dot grid — no gradients. The colour comes from the
+   bordered blocks in DesktopWrapper, so the backdrop stays high-contrast. */
+.wallpaper {
+  background-color: var(--desk);
+  background-image: radial-gradient(var(--dot) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
 }

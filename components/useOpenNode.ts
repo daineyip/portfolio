@@ -19,8 +19,20 @@ export function useOpenNode() {
         case 'folder':
           openFolder({ id: node.id, label: node.label });
           break;
-        case 'doc':
-          openWindow(`reader:${node.id}`, node.label, 'reader', node.id);
+        case 'doc': {
+          const app = node.app ?? 'reader';
+          openWindow(`${app}:${node.id}`, node.label, app, node.id, {
+            maximized: node.fullscreen,
+          });
+          break;
+        }
+        case 'app':
+          openWindow(`${node.appType}:${node.id}`, node.label, node.appType, node.id, {
+            maximized: node.fullscreen,
+          });
+          break;
+        case 'pdf':
+          openWindow(`pdf:${node.id}`, node.label, 'pdf', node.id, { maximized: node.fullscreen });
           break;
         case 'link':
           window.open(node.href, '_blank', 'noopener,noreferrer');

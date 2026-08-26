@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MENU_BAR, findNode, type Node } from '@/data/tree';
+import { MENU_BAR, STATUS, STATUS_OPTIONS, findNode, type Node } from '@/data/tree';
+import { glyphFor } from './NodeIcon';
 import { useOpenNode } from './useOpenNode';
 
 function Clock() {
@@ -17,6 +18,30 @@ function Clock() {
   }, []);
 
   return <span className="font-mono text-xs font-bold tabular-nums">{time ?? '--:--'}</span>;
+}
+
+function Status() {
+  const status = STATUS_OPTIONS[STATUS];
+
+  return (
+    <span className="flex items-center gap-1.5 rounded-full border-2 border-black bg-[#fffdf7] px-2 py-0.5 font-mono text-[11px] font-bold">
+      {/* Dot colour is data, not a class — Tailwind can only see static strings. */}
+      <span className="relative flex h-2 w-2">
+        {status.live && (
+          /* A radiating ring reads as "live"; animate-pulse only dims the dot. */
+          <span
+            className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-80"
+            style={{ backgroundColor: status.dot }}
+          />
+        )}
+        <span
+          className="relative inline-flex h-2 w-2 rounded-full border border-black"
+          style={{ backgroundColor: status.dot }}
+        />
+      </span>
+      {status.label}
+    </span>
+  );
 }
 
 export default function MenuBar() {
@@ -60,7 +85,7 @@ export default function MenuBar() {
             <button
               key={menu.label}
               onClick={() => choose(nodes[0])}
-              className="border-2 border-transparent px-2 py-0.5 font-mono text-xs font-bold hover:border-black hover:bg-[#ffd23f]"
+              className="rounded-lg border-2 border-transparent px-2 py-0.5 font-mono text-xs font-bold hover:border-black hover:bg-[#ffd23f]"
             >
               {menu.label}
             </button>
@@ -72,7 +97,7 @@ export default function MenuBar() {
           <div key={menu.label} className="relative">
             <button
               onClick={() => setOpen(isOpen ? null : menu.label)}
-              className={`border-2 px-2 py-0.5 font-mono text-xs font-bold ${
+              className={`rounded-lg border-2 px-2 py-0.5 font-mono text-xs font-bold ${
                 isOpen ? 'border-black bg-[#ffd23f]' : 'border-transparent hover:border-black hover:bg-[#ffd23f]'
               }`}
             >
@@ -80,17 +105,23 @@ export default function MenuBar() {
             </button>
 
             {isOpen && (
-              <div className="absolute left-0 top-full mt-1 min-w-44 border-[3px] border-black bg-[#fffdf7] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-                {nodes.map((node) => (
-                  <button
-                    key={node.id}
-                    onClick={() => choose(node)}
-                    className="flex w-full items-center justify-between gap-4 px-3 py-1.5 text-left font-mono text-xs hover:bg-[#ffd23f]"
-                  >
-                    {node.label}
-                    {node.kind === 'link' && <span aria-hidden>↗</span>}
-                  </button>
-                ))}
+              <div className="absolute left-0 top-full mt-1 min-w-44 overflow-hidden rounded-xl border-[3px] border-black bg-[#fffdf7] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                {nodes.map((node) => {
+                  const Glyph = glyphFor(node);
+                  return (
+                    <button
+                      key={node.id}
+                      onClick={() => choose(node)}
+                      className="flex w-full items-center justify-between gap-4 px-3 py-1.5 text-left font-mono text-xs hover:bg-[#ffd23f]"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Glyph className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
+                        {node.label}
+                      </span>
+                      {node.kind === 'link' && <span aria-hidden>↗</span>}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -98,9 +129,7 @@ export default function MenuBar() {
       })}
 
       <div className="ml-auto flex items-center gap-3">
-        <span className="border-2 border-black bg-[#ffd23f] px-2 py-0.5 font-mono text-[11px] font-bold">
-          open to work
-        </span>
+        <Status />
         <Clock />
       </div>
     </div>

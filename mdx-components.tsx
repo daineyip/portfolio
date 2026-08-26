@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { MDXComponents } from 'mdx/types';
 
 /**
@@ -16,12 +17,18 @@ const prose: MDXComponents = {
 
   p: (p) => <p className="mb-3 text-pretty text-sm leading-relaxed text-[#1b1b1b]" {...p} />,
 
-  a: (p) => (
-    <a
-      className="font-medium underline decoration-[#ffd23f] decoration-[3px] underline-offset-2 hover:bg-[#ffd23f]"
-      {...p}
-    />
-  ),
+  a: ({ href = '', ...rest }) => {
+    // Anything off-site or a static file would otherwise unmount the whole desktop.
+    const leavesApp = /^[a-z]+:/i.test(href) || /\.[a-z0-9]{2,4}$/i.test(href);
+    return (
+      <a
+        href={href}
+        {...(leavesApp ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        className="font-medium underline decoration-[#ffd23f] decoration-[3px] underline-offset-2 hover:bg-[#ffd23f]"
+        {...rest}
+      />
+    );
+  },
 
   ul: (p) => <ul className="mb-3 list-disc pl-5 text-sm leading-relaxed marker:text-[#d94f2b]" {...p} />,
   ol: (p) => <ol className="mb-3 list-decimal pl-5 text-sm leading-relaxed marker:font-bold" {...p} />,
@@ -29,11 +36,11 @@ const prose: MDXComponents = {
 
   /* Inline code. Block code is handled by <pre>, which resets these. */
   code: (p) => (
-    <code className="border-2 border-black bg-[#ffd23f] px-1 font-mono text-[12px]" {...p} />
+    <code className="rounded border-2 border-black bg-[#ffd23f] px-1 font-mono text-[12px]" {...p} />
   ),
   pre: (p) => (
     <pre
-      className="mb-4 overflow-x-auto border-[3px] border-black bg-black p-3 font-mono text-[12px] leading-relaxed text-[#fffdf7]
+      className="mb-4 overflow-x-auto rounded-xl border-[3px] border-black bg-black p-3 font-mono text-[12px] leading-relaxed text-[#fffdf7]
                  shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
                  [&_code]:border-0 [&_code]:bg-transparent [&_code]:p-0 [&_code]:text-inherit"
       {...p}
@@ -41,7 +48,7 @@ const prose: MDXComponents = {
   ),
 
   blockquote: (p) => (
-    <blockquote className="mb-3 border-l-[6px] border-[#d94f2b] pl-3 text-sm italic leading-relaxed" {...p} />
+    <blockquote className="mb-3 rounded-r-lg border-l-[6px] border-[#d94f2b] bg-[#d94f2b0d] py-2 pl-3 pr-2 text-sm italic leading-relaxed" {...p} />
   ),
 
   hr: (p) => <hr className="my-6 border-t-[3px] border-black" {...p} />,
@@ -49,13 +56,18 @@ const prose: MDXComponents = {
 
   img: (p) => (
     // eslint-disable-next-line @next/next/no-img-element
-    <img className="mb-4 max-w-full border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" alt="" {...p} />
+    <img className="mb-4 max-w-full rounded-xl border-[3px] border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" alt="" {...p} />
+  ),
+
+  /* Custom component, available to any .mdx without an import. */
+  Signature: ({ children }: { children?: ReactNode }) => (
+    <p className="mt-10 text-2xl font-black tracking-tight">— {children}</p>
   ),
 
   /* Wide tables scroll inside their own container rather than the window. */
   table: (p) => (
     <div className="mb-4 overflow-x-auto">
-      <table className="w-full border-collapse border-[3px] border-black text-sm" {...p} />
+      <table className="w-full border-collapse overflow-hidden rounded-xl border-[3px] border-black text-sm" {...p} />
     </div>
   ),
   th: (p) => <th className="border-2 border-black bg-black px-2 py-1 text-left font-mono text-xs text-[#fffdf7]" {...p} />,

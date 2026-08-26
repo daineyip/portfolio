@@ -6,41 +6,59 @@ import DesktopIcon from '../DesktopIcon';
 import { useWindow } from '../WindowContext';
 import { useOpenNode } from '../useOpenNode';
 
-const NAV_BUTTON =
-  'border-2 border-black bg-[#fffdf7] px-2 font-mono text-xs font-bold disabled:opacity-25';
-
-/** Folder browser. Folders navigate in place here; documents open their own window. */
+/**
+ * Folder browser. Folders navigate in place here; documents open their own window.
+ * Navigation is hierarchical: the only chrome is "up one level", derived from the
+ * tree, so the arrows can never wander between unrelated desktop roots.
+ */
 export default function Explorer() {
   const id = useWindow();
-  const nav = useWindowStore((s) => s.windows.find((w) => w.id === id)?.nav);
-  const goBack = useWindowStore((s) => s.goBack);
-  const goForward = useWindowStore((s) => s.goForward);
+  const folderId = useWindowStore((s) => s.windows.find((w) => w.id === id)?.folderId);
+  const openFolder = useWindowStore((s) => s.openFolder);
   const openNode = useOpenNode();
 
-  if (!nav) return null;
+  if (!folderId) return null;
 
-  const current = nav.stack[nav.index];
-  const items = childrenOf(current.id);
-  // The breadcrumb is the node's real ancestry, not the history stack.
-  const trail = pathTo(current.id) ?? [];
+  const trail = pathTo(folderId) ?? [];
+  const parent = trail[trail.length - 2];
+  const items = childrenOf(folderId);
 
   return (
-    <div className="flex h-[420px] flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b-[3px] border-black bg-[#f2ede3] px-3 py-2">
-        <button className={NAV_BUTTON} disabled={nav.index <= 0} onClick={() => goBack(id)} aria-label="Back">
-          ◀
-        </button>
         <button
-          className={NAV_BUTTON}
-          disabled={nav.index >= nav.stack.length - 1}
-          onClick={() => goForward(id)}
-          aria-label="Forward"
+          className="rounded-lg border-2 border-black bg-[#fffdf7] px-2 font-mono text-xs font-bold disabled:opacity-25"
+          disabled={!parent}
+          onClick={() => parent && openFolder({ id: parent.id, label: parent.label })}
+          aria-label="Up one level"
+          title="Up one level"
         >
-          ▶
+          ↑
         </button>
-        <span className="truncate font-mono text-xs font-bold">
-          {trail.map((n) => `/${n.label}`).join('')}
-        </span>
+
+        {/* Breadcrumb segments are the other way back up, and are clickable. */}
+        <nav className="flex min-w-0 items-center font-mono text-xs font-bold">
+          {trail.map((node, i) => {
+            const isCurrent = i === trail.length - 1;
+            return (
+              <span key={node.id} className="flex min-w-0 items-center">
+                <span aria-hidden className="px-0.5 opacity-40">
+                  /
+                </span>
+                {isCurrent ? (
+                  <span className="truncate">{node.label}</span>
+                ) : (
+                  <button
+                    className="truncate rounded px-0.5 underline decoration-[#ffd23f] decoration-2 underline-offset-2 hover:bg-[#ffd23f]"
+                    onClick={() => openFolder({ id: node.id, label: node.label })}
+                  >
+                    {node.label}
+                  </button>
+                )}
+              </span>
+            );
+          })}
+        </nav>
       </div>
 
       <div className="grid grid-cols-4 content-start gap-5 overflow-auto p-6">

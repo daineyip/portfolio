@@ -16,4 +16,10 @@ npm run dev
 - `app/layout.tsx` — hosts the shell so navigation never unmounts the OS.
 
 ## Not built yet
-Resizing, Boring Mode (<768px plain scrolling page), full desktop icon set.
+- Resizing
+- Boring Mode (<768px plain scrolling page)
+- full desktop icon set.
+- AI helper to navigate desktop
+- Keyboard shortcuts
+- Dark mode
+- draggable windows and snap locking to full screen and half screens

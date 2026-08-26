@@ -16,8 +16,11 @@ export default function ReaderView() {
 
   /* All prose styling comes from mdx-components.tsx, so this is just the frame. */
   return (
-    <div className="max-h-[420px] overflow-auto border-t-[3px] border-black bg-[#fffdf7] p-5">
-      <Body />
+    <div className="min-h-0 flex-1 overflow-auto bg-[#fffdf7]">
+      {/* Centred measure so a maximized readme reads like a page, not a stretched file. */}
+      <div className="mx-auto w-full max-w-2xl px-6 py-6">
+        <Body />
+      </div>
     </div>
   );
 }
