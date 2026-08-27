@@ -1,5 +1,6 @@
 'use client';
 
+import { PinIcon } from 'lucide-react';
 import { useWindowStore } from '@/store/useWindowStore';
 
 export default function Taskbar() {
@@ -19,10 +20,19 @@ export default function Taskbar() {
         <button
           key={w.id}
           onClick={() => (w.isMinimized ? focusWindow(w.id) : minimizeWindow(w.id))}
-          className={`shrink-0 whitespace-nowrap rounded-lg border-2 px-3 py-1 font-mono text-xs font-bold ${
+          className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border-2 px-3 py-1 font-mono text-xs font-bold ${
             w.isMinimized ? 'border-[#fffdf7] bg-transparent text-[#fffdf7]' : 'border-[#fffdf7] bg-[#fffdf7] text-black'
           }`}
         >
+          {/* A pinned window can't be dragged, which is worth saying somewhere the
+              window itself isn't — it may well be minimized when you wonder why. */}
+          {w.snap && (
+            <PinIcon
+              className="h-3 w-3 shrink-0"
+              strokeWidth={2.5}
+              aria-label={`Pinned ${w.snap}`}
+            />
+          )}
           {w.title}
         </button>
       ))}

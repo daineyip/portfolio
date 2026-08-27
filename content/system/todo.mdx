@@ -2,33 +2,52 @@
 
 What's next for this desktop, roughly in the order I'd build it.
 
-## Window snapping
+Window snapping and keyboard shortcuts are **done** — see `shortcuts.mdx` for what
+the keys do, and the changelog for what shipped. What's left of them is small and
+lives under Smaller things.
 
-- Left/right edge → half the workspace, with a preview outline before release
-- Top edge → maximize, same path as the green Expand control
-- Corners → quarter tiles, once halves work
-- Snapping has to respect the workspace inset, not the viewport — the same boundary
-  `constraintsRef` already defines, so a snapped window still clears the taskbar
+## Real email
 
-## Keyboard shortcuts
+The Inbox builds a `mailto:` and hands off to whatever mail client the visitor has.
+That was the right first move — no backend, no secret, nothing to leak — but it asks
+the visitor to finish the job in another app, and on a machine with no mail client
+configured it does nothing at all. Worse, the address has to ship in the bundle for
+the handoff to work, so it is scrapeable no matter what the window displays.
 
-Right now everything needs a pointer, which is a strange thing to say about an OS.
+Send it properly instead:
 
-- `Cmd/Ctrl+K` — search the tree by label and open whatever you pick. `findNode` already
-  walks the tree, so the palette is mostly UI
-- `Cmd+M` — minimize the focused window
-- `Cmd+Enter` — maximize and restore, same path as the green control
-- `Esc` — close the focused window
-- `Cmd+\`` — cycle focus through open windows, most recent first
-- Arrow keys through the Explorer grid, `Enter` to open, `Cmd+Up` for up one level
+- **Resend** is the better fit — built for transactional mail from an app, and the
+  free tier covers a portfolio comfortably. Twilio SendGrid is the alternative and
+  the heavier one; its API is aimed at volume this will never have
+- The send goes through a route handler, not the browser, so the API key stays on
+  the server and the address never reaches the bundle. `send()` in `Inbox.tsx` is
+  already the only thing that would change — swap the `mailto:` for a `POST`
+- Needs a honeypot field and rate limiting by IP before it goes anywhere near
+  public, or it becomes someone's relay
+- Keep a `mailto:` link somewhere as the fallback for when the send fails
 
-Two things to sort out first. The browser owns `Cmd+W`, `Cmd+T` and `Cmd+N` and won't
-give them back, so close has to live somewhere else and `Esc` is the honest choice.
-And `Space` is already play/pause in the video player, so anything global needs to
-check what's focused before it fires.
+## A chatbot that knows the desktop
 
-Shortcuts nobody knows about may as well not exist, so this needs a `?` overlay listing
-them, and probably a hint somewhere on first visit.
+An app in the OS you can ask about the work, rather than opening folders until you
+find it. The interesting part isn't the chat — it's that the desktop can hand the
+model everything it needs to be specific.
+
+- **Context is already built.** `lib/search-index.ts` produces the plain text of
+  every document at build time for `Cmd+K`; the same index is the system prompt. The
+  tree in `data/tree.ts` tells it what exists and how it's arranged
+- **Give it the desktop as tools**, not just as text: open a node, run a search,
+  say which windows are open. `useOpenNode()` is already the single definition of
+  what opening means, so a tool call lands the visitor in the right window rather
+  than describing it. Answering "where's the Binance work?" by *opening* it is the
+  whole point
+- Route handler again — the API key never belongs in the browser. The
+  `@anthropic-ai/sdk` package, `claude-opus-5`, streaming so the reply arrives as
+  it's written
+- The document text is a large, unchanging prefix on every request, which is exactly
+  what prompt caching is for. Put it before anything that varies
+- It renders as another `appType` with its own template, so it opens, minimizes and
+  pins like every other window. That part is the easy part
+- Needs a spend ceiling and rate limiting before it's public
 
 ## Dark mode
 
@@ -45,6 +64,12 @@ than a rewrite. The work is in the details the tokens don't cover:
 
 ## Smaller things
 
+- Corner snapping → quarter tiles, now that the halves work. The zones and the outline
+  are already there; corners are a fourth case in the same table
+- Arrow keys through the Explorer grid, `Enter` to open, `Cmd+Up` for up one level.
+  The global shortcuts landed, but the grid itself still needs a pointer
+- A hint on first visit that `Cmd+K` and `?` exist. The menu bar shows the search
+  chord; nothing announces the rest
 - A window that remembers its size per app type, so the reader opens tall and the image
   viewer opens wide
 - Boring Mode deserves a real design pass rather than being the fallback

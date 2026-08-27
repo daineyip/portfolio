@@ -17,6 +17,14 @@
   background-size: 22px 22px;
 }
 
+/* Set by components/Cursor.tsx once it has decided to take over, never in markup:
+   if the script never runs, the visitor keeps a real cursor. `!important` because
+   it has to beat the `cursor-grab` on a title bar, which the pill replaces. */
+.no-native-cursor,
+.no-native-cursor * {
+  cursor: none !important;
+}
+
 /* Hover-to-locate feedback: a radiating accent ring, in the same language as the
    "live" status dot. Two variants because desktop tiles must keep their hard drop
    shadow while they pulse — an animated box-shadow replaces the class outright. */

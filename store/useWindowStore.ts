@@ -8,6 +8,9 @@ export interface NavEntry {
   label: string;
 }
 
+/** Half of the workspace a window can be pinned to. */
+export type Side = 'left' | 'right';
+
 export interface AppWindow {
   id: string;
   title: string;
@@ -16,6 +19,8 @@ export interface AppWindow {
   isOpen: boolean;
   isMinimized: boolean;
   isMaximized: boolean;
+  /** Pinned to one half of the workspace; mutually exclusive with isMaximized. */
+  snap?: Side;
   zIndex: number;
   /** Explorer windows only: which folder is currently shown. */
   folderId?: string;
@@ -35,6 +40,12 @@ interface WindowState {
   closeWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
   toggleMaximize: (id: string) => void;
+  /** Pin to a half of the workspace; the same side again lets it float free. */
+  snapWindow: (id: string, side: Side) => void;
+  /** Let a pinned or maximized window float again — what dragging one off does. */
+  unpinWindow: (id: string) => void;
+  /** "Show desktop": clears the workspace without closing anything. */
+  minimizeAll: () => void;
   focusWindow: (id: string) => void;
 }
 
@@ -125,10 +136,39 @@ export const useWindowStore = create<WindowState>((set) => ({
   minimizeWindow: (id) =>
     set((s) => ({ windows: s.windows.map((w) => (w.id === id ? { ...w, isMinimized: true } : w)) })),
 
+  /* Maximizing drops any pin: a window fills the workspace or holds a half of it,
+     never both. */
   toggleMaximize: (id) =>
     set((s) => ({
-      windows: s.windows.map((w) => (w.id === id ? { ...w, isMaximized: !w.isMaximized } : w)),
+      windows: s.windows.map((w) =>
+        w.id === id ? { ...w, isMaximized: !w.isMaximized, snap: undefined } : w,
+      ),
     })),
+
+  snapWindow: (id, side) =>
+    set((s) => ({
+      windows: s.windows.map((w) =>
+        w.id === id
+          ? {
+              ...w,
+              // The same side again is the way back to a floating window.
+              snap: w.snap === side ? undefined : side,
+              isMaximized: false,
+              isMinimized: false,
+            }
+          : w,
+      ),
+    })),
+
+  unpinWindow: (id) =>
+    set((s) => ({
+      windows: s.windows.map((w) =>
+        w.id === id ? { ...w, snap: undefined, isMaximized: false } : w,
+      ),
+    })),
+
+  minimizeAll: () =>
+    set((s) => ({ windows: s.windows.map((w) => (w.isOpen ? { ...w, isMinimized: true } : w)) })),
 
   focusWindow: (id) =>
     set((s) => {

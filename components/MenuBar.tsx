@@ -1,10 +1,34 @@
 'use client';
 
+import { Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { MENU_BAR, STATUS, STATUS_OPTIONS, findNode, type Node } from '@/data/tree';
 import { useHint } from '@/store/useHint';
+import { useSearch } from '@/store/useSearch';
 import { glyphFor } from './NodeIcon';
 import { useOpenNode } from './useOpenNode';
+
+/**
+ * The visible half of ⌘K. A button rather than a real input: the palette owns the
+ * only search field there is, so there is never a second one to keep in sync or to
+ * hand focus back and forth with.
+ */
+function SearchField() {
+  const setOpen = useSearch((s) => s.setOpen);
+
+  return (
+    <button
+      onClick={() => setOpen(true)}
+      aria-label="Search the desktop"
+      className="flex items-center gap-2 rounded-full border-2 border-black bg-[#f2ede3] py-0.5 pl-2 pr-1
+                 font-mono text-[11px] font-bold hover:bg-[#ffd23f]"
+    >
+      <Search className="h-3 w-3 shrink-0" strokeWidth={3} />
+      <span className="opacity-60">Search</span>
+      <kbd className="rounded-full border-2 border-black bg-[#fffdf7] px-1.5 text-[10px] leading-tight">⌘K</kbd>
+    </button>
+  );
+}
 
 function Clock() {
   const [time, setTime] = useState<string | null>(null);
@@ -84,7 +108,9 @@ export default function MenuBar() {
 
         const hinted = Boolean(hintId && menu.items.includes(hintId));
 
-        // A menu with one destination is a plain button, not a dropdown.
+        /* A menu with one destination is a plain button, not a dropdown. It still
+           reads as top-level chrome, so it keeps the plain ring cursor rather than
+           taking on its node's shape the way the items inside a menu do. */
         if (nodes.length === 1) {
           return (
             <button
@@ -119,6 +145,7 @@ export default function MenuBar() {
                     <button
                       key={node.id}
                       onClick={() => choose(node)}
+                      data-cursor={node.kind === 'link' ? 'link' : 'open'}
                       className={`flex w-full items-center justify-between gap-4 px-3 py-1.5 text-left font-mono text-xs hover:bg-[#ffd23f] ${
                         node.id === hintId ? 'bg-[#ffd23f]' : ''
                       }`}
@@ -138,6 +165,7 @@ export default function MenuBar() {
       })}
 
       <div className="ml-auto flex items-center gap-3">
+        <SearchField />
         <Status />
         <Clock />
       </div>

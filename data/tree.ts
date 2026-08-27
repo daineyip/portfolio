@@ -14,6 +14,7 @@ import SystopiaReadme from '@/content/research/systopia/readme.mdx';
 import HomeReadme from '@/content/home/readme.mdx';
 import Prd from '@/content/system/prd.mdx';
 import Changelog from '@/content/system/changelog.mdx';
+import ShortcutsDoc from '@/content/system/shortcuts.mdx';
 import Todo from '@/content/system/todo.mdx';
 import KilledProject from '@/content/trash/killed-project.mdx';
 
@@ -31,7 +32,7 @@ export type IconKey =
   | 'image' | 'palette' | 'document'
   | 'home' | 'clock' | 'wrench' | 'book'
   | 'trash' | 'skull'
-  | 'monitor' | 'ruler' | 'history' | 'flame'
+  | 'monitor' | 'ruler' | 'history' | 'flame' | 'keyboard'
   | 'file' | 'folder' | 'link' | 'globe' | 'mail' | 'github' | 'linkedin'
   | 'video';
 
@@ -61,6 +62,13 @@ interface NodeBase {
    * at. Used for company and project readmes.
    */
   fullscreen?: boolean;
+  /**
+   * Docs only: this document's path under `content/`, so global search can index
+   * the prose inside it. `Body` is a compiled component and cannot be read back as
+   * text, so the path has to be stated. A doc without one still matches on its
+   * label — it just has no full text to search.
+   */
+  file?: string;
 }
 
 export type Node =
@@ -99,6 +107,7 @@ export const TREE: Node[] = [
             icon: 'file',
             fullscreen: true,
             Body: MarketerhireReadme,
+            file: 'work/marketerhire/readme.mdx',
           },
           { kind: 'link', id: 'work-marketerhire-site', label: 'marketerhire.com/mh1', icon: 'globe', href: 'https://marketerhire.com/mh1' },
         ],
@@ -118,6 +127,7 @@ export const TREE: Node[] = [
             icon: 'file',
             fullscreen: true,
             Body: BinanceReadme,
+            file: 'work/binance-us/readme.mdx',
           },
           { kind: 'link', id: 'work-binance-staking', label: 'Staking', icon: 'impact', href: 'https://www.binance.us/staking' },
           { kind: 'link', id: 'work-binance-walletconnect', label: 'WalletConnect guide', icon: 'book', href: 'https://www.binance.com/en/academy/articles/how-to-use-walletconnect' },
@@ -139,6 +149,7 @@ export const TREE: Node[] = [
             icon: 'file',
             fullscreen: true,
             Body: OnwareReadme,
+            file: 'work/onware/readme.mdx',
           },
           { kind: 'link', id: 'work-onware-tableau', label: 'Tableau consulting', icon: 'impact', href: 'https://onware.com/tableau/' },
           { kind: 'link', id: 'work-onware-site', label: 'onware.com', icon: 'globe', href: 'https://onware.com' },
@@ -159,6 +170,7 @@ export const TREE: Node[] = [
             icon: 'file',
             fullscreen: true,
             Body: DunroeReadme,
+            file: 'work/dunroe/readme.mdx',
           },
           { kind: 'link', id: 'work-dunroe-site', label: 'dunroe.io', icon: 'globe', href: 'https://dunroe.io' },
         ],
@@ -187,6 +199,7 @@ export const TREE: Node[] = [
             icon: 'file',
             fullscreen: true,
             Body: OvalReadme,
+            file: 'projects/oval-updates/readme.mdx',
           },
           { kind: 'link', id: 'project-oval-site', label: 'ovalupdates.com', icon: 'globe', href: 'https://www.ovalupdates.com' },
         ],
@@ -205,6 +218,7 @@ export const TREE: Node[] = [
             icon: 'file',
             fullscreen: true,
             Body: HyperscreenReadme,
+            file: 'projects/hyperscreen/readme.mdx',
           },
           {
             kind: 'pdf',
@@ -247,6 +261,7 @@ export const TREE: Node[] = [
             icon: 'file',
             fullscreen: true,
             Body: WipReadme,
+            file: 'projects/workinprogress/readme.mdx',
           },
           {
             kind: 'video',
@@ -288,6 +303,7 @@ export const TREE: Node[] = [
     icon: 'home',
     fullscreen: true,
     Body: HomeReadme,
+    file: 'home/readme.mdx',
   },
   {
     kind: 'folder',
@@ -311,6 +327,7 @@ export const TREE: Node[] = [
             icon: 'file',
             fullscreen: true,
             Body: SystopiaReadme,
+            file: 'research/systopia/readme.mdx',
           },
           {
             kind: 'pdf',
@@ -332,7 +349,7 @@ export const TREE: Node[] = [
     label: 'Trash',
     icon: 'trash',
     children: [
-      { kind: 'doc', id: 'trash-killed-project', label: 'killed-project.mdx', icon: 'skull', Body: KilledProject },
+      { kind: 'doc', id: 'trash-killed-project', label: 'killed-project.mdx', icon: 'skull', Body: KilledProject, file: 'trash/killed-project.mdx' },
     ],
   },
 
@@ -343,9 +360,10 @@ export const TREE: Node[] = [
     label: 'About This Desktop',
     icon: 'monitor',
     children: [
-      { kind: 'doc', id: 'system-prd', label: 'prd.mdx', icon: 'file', fullscreen: true, Body: Prd },
-      { kind: 'doc', id: 'system-todo', label: 'TODO.mdx', icon: 'wrench', Body: Todo },
-      { kind: 'doc', id: 'system-changelog', label: 'changelog.mdx', icon: 'history', Body: Changelog },
+      { kind: 'doc', id: 'system-prd', label: 'prd.mdx', icon: 'file', fullscreen: true, Body: Prd, file: 'system/prd.mdx' },
+      { kind: 'doc', id: 'system-todo', label: 'TODO.mdx', icon: 'wrench', Body: Todo, file: 'system/todo.mdx' },
+      { kind: 'doc', id: 'system-changelog', label: 'changelog.mdx', icon: 'history', Body: Changelog, file: 'system/changelog.mdx' },
+      { kind: 'doc', id: 'system-shortcuts', label: 'shortcuts.mdx', icon: 'keyboard', Body: ShortcutsDoc, file: 'system/shortcuts.mdx' },
     ],
   },
 
@@ -374,6 +392,7 @@ export const TREE: Node[] = [
     app: 'bio',
     fullscreen: true,
     Body: Bio,
+    file: 'identity/bio.mdx',
   },
   {
     kind: 'doc',
@@ -382,6 +401,7 @@ export const TREE: Node[] = [
     icon: 'flame',
     fullscreen: true,
     Body: Motivation,
+    file: 'identity/motivation.mdx',
   },
   {
     kind: 'pdf',
@@ -423,11 +443,54 @@ export const BIO = {
   photo: '/daine.jpeg',
 };
 
-/** Wallpaper greeting. Split so the name can carry its own block treatment. */
-export const GREETING = {
-  before: "Hi, I'm",
-  name: 'Daine',
-  after: 'and this is my desktop.',
+/**
+ * The wallpaper intro. Each line is a fragment of text ending in a chip — a
+ * clickable phrase that expands in place to a longer clause.
+ *
+ * One chip per line, and that is the whole point: a chip growing inside a
+ * flowing paragraph rewraps the text, and a rewrap is a jump no animation can
+ * smooth over. Given its own line, an opening chip only widens that line, so the
+ * line count never changes and nothing below it moves.
+ */
+export interface IntroChip {
+  id: string;
+  label: string;
+  /** Revealed beside the label when the chip is open. */
+  more: string;
+  /** Flat fill behind the chip; one of the wallpaper's block colours. */
+  color: string;
+}
+
+export const INTRO: { lines: Array<{ before: string; chip: IntroChip }> } = {
+  lines: [
+    {
+      before: 'Daine Yip is a',
+      chip: {
+        id: 'role',
+        label: 'product manager',
+        more: 'making things that people want',
+        color: '#ffd23f',
+      },
+    },
+    {
+      before: 'based in',
+      chip: {
+        id: 'place',
+        label: 'Vancouver, British Columbia',
+        more: 'ask me about climbing, hiking, and coffee',
+        color: '#35c46a',
+      },
+    },
+    {
+      before: 'currently building @',
+      chip: {
+        id: 'work',
+        label: 'MarketerHire',
+        more: 'building custom marketing software',
+        color: '#d94f2b',
+      },
+    },
+  ],
 };
 
 /** Desktop icons, in display order. */

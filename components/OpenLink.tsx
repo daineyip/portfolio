@@ -37,6 +37,7 @@ export default function OpenLink({ id, children }: { id: string; children?: Reac
       onPointerLeave={clear}
       onFocus={point}
       onBlur={clear}
+      data-cursor={node.kind === 'link' ? 'link' : 'open'}
       className="font-medium underline decoration-[#ffd23f] decoration-[3px] underline-offset-2 hover:bg-[#ffd23f]"
     >
       {label}

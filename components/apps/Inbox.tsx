@@ -37,9 +37,8 @@ export default function Inbox() {
       <div className="shrink-0 border-b-[3px] border-black">
         <div className={ROW}>
           <span className={LABEL}>To</span>
-          <span className="truncate font-mono text-sm font-bold">
-            {CONTACT.name} &lt;{CONTACT.email}&gt;
-          </span>
+          {/* Name only — the address stays in the mailto rather than on screen. */}
+          <span className="truncate font-mono text-sm font-bold">{CONTACT.name}</span>
         </div>
         <div className={ROW}>
           <span className={LABEL}>From</span>

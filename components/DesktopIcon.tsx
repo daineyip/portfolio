@@ -31,7 +31,11 @@ export default function DesktopIcon({ node, onOpen, size = 'desk' }: Props) {
   const glyph = size === 'desk' ? 'h-6 w-6' : 'h-5 w-5';
 
   return (
-    <button onClick={() => onOpen(node)} className="group flex w-24 flex-col items-center gap-2">
+    <button
+      onClick={() => onOpen(node)}
+      data-cursor={node.kind === 'link' ? 'link' : 'open'}
+      className="group flex w-24 flex-col items-center gap-2"
+    >
       <span
         className={`relative flex ${box} items-center justify-center overflow-hidden rounded-xl border-[3px] border-black
                     shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-transform group-hover:-translate-y-0.5

@@ -14,8 +14,8 @@ pills and window controls. Palette lives in `app/globals.css`: `--paper`, `--des
 `--accent` yellow, `--alert` red, `--ok` green. The desktop uses the `.wallpaper`
 class — a flat fill under a hard dot grid, **no gradients** — with high-contrast
 colour blocks (flat fills, `border-[3px]` black, rotated, rounded) composed as a
-decorative `pointer-events-none` layer in `DesktopWrapper`, plus the `GREETING`
-from `data/tree.ts` set large in the lower right.
+decorative `pointer-events-none` layer in `DesktopWrapper`, plus the `IntroCard`
+centred on the desktop.
 
 ## Reference tech stack (for handoff/dev intent)
 - Next.js App Router; `app/layout.tsx` persistently hosts `<DesktopWrapper>` + `<Taskbar>` so navigation never unmounts the OS.
@@ -99,6 +99,13 @@ A node may carry `image: '/logo.png'` instead of an `icon` key; the image wins.
 A doc may set `fullscreen: true` to open **maximized** — used for readmes, which
 are documents to read rather than files to peek at.
 
+Global search reads the documents' text at **build time**: `lib/search-index.ts` strips
+each `.mdx` to plain text and `app/layout.tsx` — a server component — hands the result to
+the palette as a prop, so it costs the visitor nothing at runtime. That file touches
+`node:fs`, so **only `app/layout.tsx` may import it**; a client import breaks the build.
+Because a compiled `Body` cannot be read back as text, each doc node names its own path
+under `content/` in a `file` field. A doc without one still matches on its label.
+
 Folder convention for an experience (a company, a project): a `readme.mdx` with
 `fullscreen: true` carrying the rundown, and alongside it external links, media
 and documents about that work — product sites, Figma files, photos, PDFs. Docs are **static** MDX imports (a variable-path
@@ -108,12 +115,88 @@ differ from the filename. `useOpenNode()` is the single definition of what openi
 a node means, shared by desktop, Explorer and menu bar.
 
 ## Components
+- **CommandPalette** — global search on ⌘K, plus a search field in the menu bar so the feature is findable without knowing the shortcut. Searches node labels, folder paths **and the prose inside the documents**; ranking is label-exact → label-prefix → label-contains → path → body, so typing a folder's name never buries it under the documents that mention it. A body hit renders a snippet with the match lit in accent yellow — paper yellow on the selected row, which is itself accent. Opening a result goes through `useOpenNode()`, the same call the desktop, Explorer and the menu bar make: search is a way *in*, not a fifth definition of what opening means. Overlay sits at `z-40`, above the menu bar and taskbar (`z-10`) and below `Cursor` (`z-50`). Open/closed state is `store/useSearch.ts`, its own store for the same reason as `useHint`: the palette is not a window and must not churn window state.
+- **Cursor** — replaces the pointer with a circle, black ringed in paper (`HALO`) so it stays visible over black chrome as well as the pale desktop, that reads what it is over: a small glyph inside it says what the click does (`+` to open, `↗` to leave the site, a move mark on a drag handle), a hollow ring marks a plain button — an intro chip included, since expanding one is a press like any other, and a caret bar marks a text field. It deliberately stays close to pointer-sized — a cursor that swells into a label is a cursor that covers the thing you are pointing at, and with the native pointer hidden there is no arrow tip left to aim with. Where a target is too small to aim at, the fix belongs to the target, not the cursor: the traffic lights grow to meet the pointer (see **AppWindow**). What it becomes is decided in two passes — `data-cursor` wins where a component knows something the DOM cannot say (a `DesktopIcon`, an `OpenLink` and a `MenuBar` item *inside* a menu each know whether the node behind them is a link or something that opens in the desktop, while the bar's own top-level buttons stay plain chrome; a title bar knows it is a drag handle), and everything else falls back to what the element *is* (`input`, `a[href]`, `button`), so ordinary controls need no annotation. Shapes are a table of **fixed** widths and heights animated as numbers — no layout measuring, no transform scaling, so `rounded-full` ends stay round at every size between. Three guards: it only activates on `(pointer: fine)`, and it adds `.no-native-cursor` from script rather than markup, so no-JS and touch visitors keep a real cursor; and it hides over an `<iframe>` (the PDF viewer), whose pointer events never reach the page.
+- **IntroCard** — the wallpaper intro, centred on the desktop: three lines from `INTRO` in `data/tree.ts`, each a fragment of text ending in a chip (role, city, current company) that expands in place to a longer clause. Wallpaper you can poke at — not a window, no store; the layer holding it is `pointer-events-none` so the rest of the desktop stays clickable, and it recedes with the icons while `peeking`. Two rules keep the motion smooth, and both are structural: **one chip per line, every line `whitespace-nowrap`**, so an opening chip only widens its own line and the text never rewraps (a rewrap is a jump no animation can smooth over); and **no Framer `layout` anywhere in it** — layout animation moves a box by projecting a transform, and the radius correction can't hold a `rounded-full` pill together while the box scales, so the ends pop between radii. The chip instead animates the real width of its clause, which is a genuine layout change: no transform, no distortion, and the centred line slides continuously around it. Timing is one long ease-out (`DURATION`/`EASE` at the top of the file), collapsing to zero under `prefers-reduced-motion`.
 - **DesktopWrapper** — root client component; wallpaper, desktop icons from the `DESKTOP` surface. Windows live in a **workspace** div (`top-12 bottom-14 left-7 right-7`) — the whole desktop inset by a page margin, below the menu bar and above the taskbar. That div is `constraintsRef`, so dragging and Expand share one boundary: windows can be dragged over the icon columns, and a maximized window covers them while keeping the page margin. Windows open at `x: 120` so they start clear of the left icons. Renders **every** window as a sibling. Carries `isolate`, which keeps window z-indexes from ever climbing over the menu bar and taskbar.
 - **MenuBar** — fixed top bar built from `MENU_BAR`; a menu with a single item renders as a plain button rather than a dropdown. Closes on Escape and outside-click.
 - **DesktopIcon** — one icon button used on both the wallpaper and in Explorer's grid; `link` nodes get an `↗` badge.
 - **NodeIcon** — maps a node's `icon?: IconKey` to a glyph, falling back per kind (folder/doc/link). Icons are **content**: every node names its own in `data/tree.ts`, so the registry is the only place components know about glyphs. Lucide v1 dropped brand icons, so GitHub and LinkedIn are hand-rolled fill marks in `components/icons.tsx`.
-- **AppWindow** — `motion.div drag dragConstraints={constraintsRef} dragMomentum={false}`, `style={{ zIndex }}`; drag is started only by the title bar (`useDragControls` + `dragListener={false}`), or double-click it to maximize. Chrome is three traffic-light circles, left to right: green expand, yellow minimize, red close. Maximized windows use `inset-0` and fill the **workspace**, never the screen. Position is owned by explicit `useMotionValue` x/y rather than Framer's internal drag transform: maximizing zeroes them (otherwise the window fills from wherever it was dragged and spills past the right edge) and restoring puts the saved offset back. Do not try to neutralise the translate in CSS — `[transform:none!important]` is not valid Tailwind v4 and compiles to nothing. The window is `flex flex-col` and templates fill it with `min-h-0 flex-1`, which is what makes Expand meaningful. Owns its own `<AnimatePresence>` so close/minimize plays an exit animation — the motion element must stay AnimatePresence's direct child. Inner contents wrapped in a `WindowContext.Provider` (value: window id) so nested components use `useWindow()` instead of prop-drilling; chrome = `cursor-grab` title bar with title + minimize/close.
-- **Taskbar** — fixed `absolute bottom-0 w-full`, iterates store windows; clicking a focused item minimizes it, otherwise restores + focuses.
+- **AppWindow** — `motion.div drag dragConstraints={constraintsRef} dragMomentum={false}`, `style={{ zIndex }}`; drag is started only by the title bar (`useDragControls` + `dragListener={false}`), or double-click it to maximize. Chrome is three traffic-light circles, left to right: green expand, yellow minimize, red close. At 14px they are the smallest targets in the OS, so they grow to meet the pointer: the cluster swells `origin-right` once the pointer reaches the lights themselves — its own hover, which a light's hover bubbles into, so the gaps between them count while the rest of the title bar does not — and the one under the pointer swells again on top of that (two scales on two different elements, so neither has to out-specify the other), and a `before` pseudo-element stretches each hit area past the drawn dot — taller than the bar's padding, and exactly wide enough to meet its neighbours without overlapping them, so the target is bigger than it looks with no dead gaps and nothing moved. Maximized windows use `inset-0` and fill the **workspace**, never the screen. Position is owned by explicit `useMotionValue` x/y rather than Framer's internal drag transform: maximizing zeroes them (otherwise the window fills from wherever it was dragged and spills past the right edge) and restoring puts the saved offset back. Do not try to neutralise the translate in CSS — `[transform:none!important]` is not valid Tailwind v4 and compiles to nothing. The window is `flex flex-col` and templates fill it with `min-h-0 flex-1`, which is what makes Expand meaningful. Owns its own `<AnimatePresence>` so close/minimize plays an exit animation — the motion element must stay AnimatePresence's direct child. Inner contents wrapped in a `WindowContext.Provider` (value: window id) so nested components use `useWindow()` instead of prop-drilling; chrome = `cursor-grab` title bar with title + minimize/close.
+- **Taskbar** — fixed `absolute bottom-0 w-full`, iterates store windows; clicking a focused item minimizes it, otherwise restores + focuses. A pinned window's tab carries a pin glyph before its title, minimized or not — the window itself can't say it is pinned while it is off screen. The window's own title bar carries the same glyph, so the marker reads the same in both places.
+
+## Keyboard shortcuts
+`components/Shortcuts.tsx` binds them; `content/system/shortcuts.mdx` explains them.
+The native chords are unavailable — ⌘W closes the browser tab, ⌘M minimizes the
+browser, and a page cannot intercept either — so window management sits on **⌃⌥**,
+the one modifier pair no browser claims and the one Rectangle and Magnet already
+bind for tiling. Directions follow Windows: `⌃⌥←/→` pin to a half (the same side
+again lets the window float free), `⌃⌥↑` expands or restores, `⌃⌥↓` minimizes,
+`⌃⌥W` closes, `⌃⌥Tab` cycles, `⌃⌥D` shows the desktop. All but the last act on the
+**front window**, the highest z-index that is open and not minimized.
+
+The list of them is a **document in the OS**, not a bespoke overlay: `shortcuts.mdx`
+sits in the About This Desktop folder with the other system docs, opens in a window
+like anything else, and its text is indexed by search along with every other
+document. `?` opens it. So the component holds the behaviour and the document holds
+the explanation, and neither restates the other — which also means adding a shortcut
+means editing both.
+
+Chords are matched on **`e.code`, never `e.key`**. Holding Option on macOS rewrites
+the character a key produces — ⌥W arrives as `∑`, ⌥D as `∂` — so matching on `key`
+appears to work (the arrow names never change) while every letter silently fails.
+`code` is the physical key and is untouched by modifiers.
+
+Handlers bail out when the event target is an input, textarea or contenteditable,
+and while the search palette is open: typing is typing, not commanding.
+
+Windows can also be **dragged** to the same three places — left and right halves,
+top to fill — when the pointer reaches an edge of the workspace (`EDGE`/`DWELL` in
+`AppWindow`). Following macOS, the dwell is **per zone**: the sides answer at once,
+the top asks you to hold. The sides can be instant because they are cheap to undo —
+a window pinned to a half you did not want is dragged straight back out — while the
+top is both the expensive move and the edge you cross on the way to the menu bar.
+Leaving a zone withdraws the offer immediately; only arriving can be slow.
+
+The outline that appears is drawn by `SnapOutline` in `DesktopWrapper`, inside the
+workspace, from the same rules the window will use — so it shows the actual box. It
+is styled as the **ghost of the window**, the way macOS does it: the same
+`rounded-2xl` and the same solid black border a real window wears, over a pale wash
+of the paper it will be made of. Not a dashed region — that reads as a hazard box
+rather than as a window about to arrive. It paints **over** every window
+(`zIndex: 9999`) so the whole claimed region is legible instead of half-hidden
+behind the window being dragged across it; that only works because the wash is pale
+and the blur behind it is a token half-pixel, so what it covers still reads.
+It carries **no z-index**, which puts it under every window: painted on top, its
+fill tints the window being dragged and reads as the window changing colour. Its
+appearance is also what **arms** the drop — `onDragEnd` acts on the zone in
+`useDragSnap`, never the one under the pointer, so releasing without an outline
+does nothing. What you can see is the only thing that can happen.
+
+Dragging a pinned or maximized window tears it loose, and the conversion has to
+happen in `startDrag` **before** `controls.start()`, not in `onDragStart`. A pinned
+window sits where CSS puts it with x/y at zero, so Framer captures zero as the drag
+origin and then writes `x = origin + delta` on every move — dropping the window at
+the workspace's left edge wherever it actually was. Setting x/y mid-drag cannot fix
+it; Framer overwrites the value on the next frame. So `startDrag` places the window
+first and calls `controls.start()` last, so the origin Framer captures is a position
+that makes sense.
+
+Where it places it is the **grab**, not the corner. Keeping the window's top-left
+works for a half-pinned window and fails for a maximized one, whose top-left already
+*is* the workspace's — it would shrink into the far corner away from a hand that
+took hold of the middle of the bar. So the pointer's fraction across the old width
+is applied to the new one. That is why a window's floating size is a `size={{ w, h }}`
+prop rather than a Tailwind class: the new width has to be known a frame before the
+window is that wide. Every window is `drag`-enabled, and the title bar always offers
+the grab cursor.
+
+Pinning is `snap?: 'left' | 'right'` on the window, mutually exclusive with
+`isMaximized`. `AppWindow` treats maximized and snapped as one state, `pinned` —
+both park the window against the workspace edges, so both zero its drag offset and
+both disable dragging. The offset is saved and restored **only on the crossing**
+into and out of pinned; saving on every pinned render would overwrite the stored
+position with the zeroes just written, which is how maximized → half loses it.
 
 ## Responsive: "Boring Mode"
 Under 768px, bypass the desktop metaphor and window store entirely — render a plain vertically scrolling page with the same data in basic sections (`hidden md:flex` for the OS, or a `useMediaQuery` hook).
