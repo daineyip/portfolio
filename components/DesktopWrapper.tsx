@@ -79,15 +79,22 @@ export default function DesktopWrapper() {
 
   return (
     <div className="wallpaper relative isolate h-screen w-full overflow-hidden px-7 pb-16 pt-16">
+      {/*
+        Desktop layers, bottom to top: colour blocks, intro card, icons, windows.
+        Stated as z-index rather than left to source order, because source order put
+        the intro above the icons — it is wallpaper, and wallpaper does not cover the
+        things you click. `isolate` on the root keeps all of it under the menu bar
+        and taskbar.
+      */}
       {/* Hard-edged colour blocks: flat fills, black borders, no gradients. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
         <span className="absolute -right-24 top-[45%] h-64 w-64 rotate-12 rounded-[2rem] border-[3px] border-black bg-[#ffd23f]" />
         <span className="absolute -left-24 bottom-28 h-56 w-56 -rotate-6 rounded-[2rem] border-[3px] border-black bg-[#d94f2b]" />
         <span className="absolute left-[38%] top-6 h-24 w-24 rotate-3 rounded-2xl border-[3px] border-black bg-[#35c46a]" />
         <span className="absolute bottom-24 left-[30%] h-14 w-44 -rotate-2 rounded-2xl border-[3px] border-black bg-black" />
       </div>
 
-      <div className="relative flex w-24 flex-col items-start gap-6">
+      <div className="relative z-20 flex w-24 flex-col items-start gap-6">
         {icons.map((node) => (
           <div key={node.id} className={`transition-opacity duration-200 ${dim(node.id)}`}>
             <DesktopIcon node={node} onOpen={openNode} />
@@ -96,7 +103,7 @@ export default function DesktopWrapper() {
       </div>
 
       {/* Deployed sites, pinned down the right edge. */}
-      <div className="absolute right-7 top-16 flex w-24 flex-col items-center gap-6">
+      <div className="absolute right-7 top-16 z-20 flex w-24 flex-col items-center gap-6">
         {shortcuts.map((node) => (
           <div key={node.id} className={`transition-opacity duration-200 ${dim(node.id)}`}>
             <DesktopIcon node={node} onOpen={openNode} />
@@ -110,7 +117,7 @@ export default function DesktopWrapper() {
         clickable; only the card itself takes the pointer back.
       */}
       <div
-        className={`pointer-events-none absolute inset-0 flex items-center justify-center px-8
+        className={`pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-8
                     transition-opacity duration-200 ${peeking ? 'opacity-25' : 'opacity-100'}`}
       >
         <div className="pointer-events-auto">
@@ -129,7 +136,7 @@ export default function DesktopWrapper() {
           for the icons beneath it; each window re-enables them for itself. */}
       <div
         ref={workspaceRef}
-        className={`pointer-events-none absolute bottom-14 left-7 right-7 top-12 transition-opacity duration-200
+        className={`pointer-events-none absolute bottom-14 left-7 right-7 top-12 z-30 transition-opacity duration-200
                     ${peeking ? 'opacity-20' : 'opacity-100'}`}
       >
         <SnapOutline />

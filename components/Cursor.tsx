@@ -129,6 +129,12 @@ export default function Cursor() {
   const springY = useSpring(y, { stiffness: 900, damping: 46, mass: 0.5 });
 
   useEffect(() => {
+    /*
+      Pointer type only, never width: this renders outside the `md` gate, so a
+      narrow window on a desktop keeps the custom cursor over the small-screen
+      notice. (It has to live outside that gate — `display: none` would hide the
+      cursor while its effect still stripped the native one.)
+    */
     if (!window.matchMedia('(pointer: fine)').matches) return;
     setActive(true);
     document.documentElement.classList.add('no-native-cursor');

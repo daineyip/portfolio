@@ -2,74 +2,46 @@
 
 What's next for this desktop, roughly in the order I'd build it.
 
-Window snapping and keyboard shortcuts are **done** — see `shortcuts.mdx` for what
-the keys do, and the changelog for what shipped. What's left of them is small and
-lives under Smaller things.
-
 ## Real email
 
-The Inbox builds a `mailto:` and hands off to whatever mail client the visitor has.
-That was the right first move — no backend, no secret, nothing to leak — but it asks
-the visitor to finish the job in another app, and on a machine with no mail client
-configured it does nothing at all. Worse, the address has to ship in the bundle for
-the handoff to work, so it is scrapeable no matter what the window displays.
+The Inbox hands off to a `mailto:`, which asks the visitor to finish the job in
+another app — and only works if they have one. The address ships in the bundle
+either way, so it's scrapeable whatever the window shows.
 
-Send it properly instead:
-
-- **Resend** is the better fit — built for transactional mail from an app, and the
-  free tier covers a portfolio comfortably. Twilio SendGrid is the alternative and
-  the heavier one; its API is aimed at volume this will never have
-- The send goes through a route handler, not the browser, so the API key stays on
-  the server and the address never reaches the bundle. `send()` in `Inbox.tsx` is
-  already the only thing that would change — swap the `mailto:` for a `POST`
-- Needs a honeypot field and rate limiting by IP before it goes anywhere near
-  public, or it becomes someone's relay
-- Keep a `mailto:` link somewhere as the fallback for when the send fails
+- **Resend** over Twilio SendGrid — built for transactional mail, not volume
+- Send from a route handler, so the key stays on the server. `send()` in
+  `Inbox.tsx` is the only thing that changes
+- Honeypot and rate limiting before it's public
+- Keep a `mailto:` fallback for when the send fails
 
 ## A chatbot that knows the desktop
 
-An app in the OS you can ask about the work, rather than opening folders until you
-find it. The interesting part isn't the chat — it's that the desktop can hand the
-model everything it needs to be specific.
+Ask about the work instead of opening folders until you find it.
 
-- **Context is already built.** `lib/search-index.ts` produces the plain text of
-  every document at build time for `Cmd+K`; the same index is the system prompt. The
-  tree in `data/tree.ts` tells it what exists and how it's arranged
-- **Give it the desktop as tools**, not just as text: open a node, run a search,
-  say which windows are open. `useOpenNode()` is already the single definition of
-  what opening means, so a tool call lands the visitor in the right window rather
-  than describing it. Answering "where's the Binance work?" by *opening* it is the
-  whole point
-- Route handler again — the API key never belongs in the browser. The
-  `@anthropic-ai/sdk` package, `claude-opus-5`, streaming so the reply arrives as
-  it's written
-- The document text is a large, unchanging prefix on every request, which is exactly
-  what prompt caching is for. Put it before anything that varies
-- It renders as another `appType` with its own template, so it opens, minimizes and
-  pins like every other window. That part is the easy part
-- Needs a spend ceiling and rate limiting before it's public
+- `lib/search-index.ts` already has every document as plain text — that's the
+  system prompt, and `data/tree.ts` is the map
+- Give it the desktop as tools, not just text: open a node, search, list what's
+  open. `useOpenNode()` means it can *open* the Binance work rather than describe it
+- Route handler, `@anthropic-ai/sdk`, `claude-opus-5`, streaming
+- Prompt caching — the document text is a big unchanging prefix
+- Another `appType` with its own template, so it windows like everything else
+- Spend ceiling and rate limiting before it's public
 
 ## Dark mode
 
-The palette already lives in `app/globals.css` as tokens — `--paper`, `--desk`,
-`--accent`, `--alert`, `--ok` — so a dark theme is mostly a second set of values rather
-than a rewrite. The work is in the details the tokens don't cover:
+The palette is already tokens in `app/globals.css`, so it's mostly a second set of
+values. The work is what the tokens don't cover:
 
-- The hard black drop shadows are the whole visual language, and black-on-dark reads as
+- The hard black shadows are the whole visual language, and black-on-dark reads as
   nothing. They need a light shadow colour, not a removed one
-- The `border-[3px]` black borders have the same problem
+- Same problem with the `border-[3px]` black borders
 - The wallpaper dot grid needs its own contrast pass
-- Respect `prefers-color-scheme` on first visit, then let a menu-bar toggle override it
-  and remember the choice
+- Follow `prefers-color-scheme`, then let a menu-bar toggle override and stick
 
 ## Smaller things
 
-- Corner snapping → quarter tiles, now that the halves work. The zones and the outline
-  are already there; corners are a fourth case in the same table
-- Arrow keys through the Explorer grid, `Enter` to open, `Cmd+Up` for up one level.
-  The global shortcuts landed, but the grid itself still needs a pointer
-- A hint on first visit that `Cmd+K` and `?` exist. The menu bar shows the search
-  chord; nothing announces the rest
-- A window that remembers its size per app type, so the reader opens tall and the image
-  viewer opens wide
+- Corner snapping → quarter tiles, a fourth case in the same zone table
+- Arrow keys through the Explorer grid, `Enter` to open, `Cmd+Up` for up one level
+- A first-visit hint that `Cmd+K` and `?` exist
+- Windows that remember their size per app type — the reader tall, the image viewer wide
 - Boring Mode deserves a real design pass rather than being the fallback
