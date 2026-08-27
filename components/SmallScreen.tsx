@@ -22,10 +22,6 @@ export default function SmallScreen() {
           This one needs a bigger screen.
         </h1>
 
-        <p className="mt-4 text-base leading-relaxed">
-          Open it on a laptop, or turn your phone sideways and hope for the best.
-        </p>
-
         <p className="mt-6 inline-block rounded-full border-2 border-black bg-[#f2ede3] px-3 py-1 font-mono text-[11px] font-bold">
           Boring Mode — coming soon
         </p>
