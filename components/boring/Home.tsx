@@ -16,7 +16,7 @@ export default function Home() {
   const motivation = findNode('identity-motivation');
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pb-20 pt-8">
+    <div className="mx-auto w-full max-w-2xl px-5 pb-6 pt-8">
       <section className="mb-12">
         <MobileIntro />
       </section>
@@ -55,13 +55,15 @@ export default function Home() {
         )}
       </section>
 
-      {MOBILE_SECTIONS.map((id) => {
+      {MOBILE_SECTIONS.map((id, i) => {
         const section = findNode(id);
         const items = childrenOf(id).filter((n): n is Node => n.kind === 'folder');
         if (!section || items.length === 0) return null;
 
         return (
-          <section key={id} className="mb-12">
+          /* The last section sits closer to the sign-off than to the next section,
+             because there is no next section. */
+          <section key={id} className={i === MOBILE_SECTIONS.length - 1 ? 'mb-6' : 'mb-12'}>
             <h2 className="mb-4 font-mono text-sm font-bold uppercase tracking-[0.2em] opacity-55">
               {section.label}
             </h2>

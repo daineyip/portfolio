@@ -1,13 +1,11 @@
-import { Mail } from 'lucide-react';
 import { CONTACT, findNode } from '@/data/tree';
-import { glyphFor } from '../NodeIcon';
 
 /**
  * The end of the page: an invitation on the left, the ways to take it up on the
- * right. The desktop keeps these behind the Connect menu and the Inbox app; a
- * phone has neither, so they sit where a thumb ends up.
+ * right. Set quietly — no rule above it, no icons, lighter than anything it
+ * follows — so it reads as a sign-off rather than another section.
  *
- * Email is a plain `mailto:` rather than the desktop's Inbox window — there is no
+ * Email is a plain `mailto:` rather than the desktop's Inbox window: there is no
  * window to compose in here, and the phone's mail app is better at it anyway.
  */
 function ways() {
@@ -16,31 +14,32 @@ function ways() {
   const resume = findNode('identity-resume');
 
   return [
-    linkedin?.kind === 'link' && { id: 'linkedin', label: 'LinkedIn', href: linkedin.href, Glyph: glyphFor(linkedin) },
-    { id: 'email', label: 'Email', href: `mailto:${CONTACT.email}`, Glyph: Mail },
-    github?.kind === 'link' && { id: 'github', label: 'GitHub', href: github.href, Glyph: glyphFor(github) },
-    resume?.kind === 'pdf' && { id: 'resume', label: 'Resume', href: resume.src, Glyph: glyphFor(resume) },
-  ].filter(Boolean) as Array<{ id: string; label: string; href: string; Glyph: typeof Mail }>;
+    linkedin?.kind === 'link' && { id: 'linkedin', label: 'linkedin', href: linkedin.href },
+    { id: 'email', label: 'email', href: `mailto:${CONTACT.email}` },
+    github?.kind === 'link' && { id: 'github', label: 'github', href: github.href },
+    resume?.kind === 'pdf' && { id: 'resume', label: 'resume', href: resume.src },
+  ].filter(Boolean) as Array<{ id: string; label: string; href: string }>;
 }
 
 export default function Footer() {
   return (
-    <footer className="flex items-end justify-between gap-4 border-t-[3px] border-black pt-6">
-      <p className="text-xl font-black leading-tight tracking-tight">Let&apos;s build together.</p>
+    /* Room above it so it is not crowded by the last tiles, and small enough that
+       the whole sign-off holds one line on any phone from 375px up. `flex-wrap` is
+       the release valve for the few narrower than that — better a second line than
+       a page that scrolls sideways. */
+    <footer className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 pt-10">
+      <p className="whitespace-nowrap font-mono text-[10px] opacity-55">let&apos;s build together.</p>
 
-      <div className="flex shrink-0 gap-2">
-        {ways().map(({ id, label, href, Glyph }) => (
+      <div className="flex shrink-0 justify-end gap-x-3">
+        {ways().map(({ id, label, href }) => (
           <a
             key={id}
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={label}
-            title={label}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border-[3px] border-black
-                       bg-[#fffdf7] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5"
+            className="whitespace-nowrap font-mono text-[10px] opacity-55"
           >
-            <Glyph className="h-4 w-4" strokeWidth={2.5} />
+            {label}
           </a>
         ))}
       </div>

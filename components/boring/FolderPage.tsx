@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Node } from '@/data/tree';
 import { glyphFor, logoFit } from '../NodeIcon';
+import Footer from './Footer';
 import Prose from './Prose';
 
 /**
@@ -28,7 +29,7 @@ export default function FolderPage({ node }: { node: Node }) {
   const children = node.kind === 'folder' ? [...node.children].sort((a, b) => RANK[a.kind] - RANK[b.kind]) : [];
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pb-20 pt-6">
+    <div className="mx-auto w-full max-w-2xl px-5 pb-6 pt-6">
       <Link
         href="/"
         className="mb-6 inline-flex items-center gap-2 rounded-full border-2 border-black bg-[#fffdf7]
@@ -60,6 +61,8 @@ export default function FolderPage({ node }: { node: Node }) {
       {children.map((child) => (
         <Item key={child.id} node={child} />
       ))}
+
+      <Footer />
     </div>
   );
 }
