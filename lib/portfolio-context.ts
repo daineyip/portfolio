@@ -9,7 +9,7 @@ import {
   STATUS_OPTIONS,
   TREE,
   findNode,
-  pathTo,
+  hintFor,
   type Node,
 } from '@/data/tree';
 import { buildSearchIndex } from './search-index';
@@ -74,40 +74,9 @@ function collectIds(nodes: Node[], into: Set<string> = new Set()): Set<string> {
 /** Every id the model is allowed to name. Anything else is dropped downstream. */
 export const NODE_IDS: ReadonlySet<string> = collectIds(TREE);
 
-/*
- * The ids something on screen can actually answer — the desktop's icon column,
- * the pinned shortcuts, and the menu bar's items. Exactly the set the `home`
- * readme links to, which is not a coincidence: that document was written to point
- * only at things the visitor can see pulse.
- */
-const SURFACED: ReadonlySet<string> = new Set([
-  ...DESKTOP,
-  ...SHORTCUTS,
-  ...MENU_BAR.flatMap((menu) => menu.items),
-]);
-
-/**
- * The id to hand `useHint` for a node the assistant named — the node itself if a
- * surface holds it, otherwise its nearest ancestor that one does.
- *
- * This is what keeps the assistant's hints the same kind of thing as the home
- * readme's. `useHint` is answered by `DesktopIcon` (which pulses when the id is
- * its own), `DesktopWrapper` (which clears the desktop only for a DESKTOP or
- * SHORTCUTS id) and `MenuBar` (which lights the menu holding the id). None of them
- * knows anything about `work-binance`, which lives two levels inside a folder — so
- * hinting it verbatim highlights nothing at all. Its folder, `work`, is on the
- * desktop, and pulsing that is the true answer to "where is this": open that.
- *
- * Null when nothing on screen leads there, which is a hint worth not sending.
- */
-export function hintFor(id: string): string | null {
-  const trail = pathTo(id);
-  if (!trail) return null;
-  for (let i = trail.length - 1; i >= 0; i -= 1) {
-    if (SURFACED.has(trail[i].id)) return trail[i].id;
-  }
-  return null;
-}
+/* Re-exported so the chat route has one import for its context needs; the
+   definition lives with the tree, since OpenLink needs it too. */
+export { hintFor };
 
 const INDEX = buildSearchIndex();
 

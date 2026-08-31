@@ -28,7 +28,7 @@ The `home` node is a `doc`, not a folder: it opens maximized as the read-me-firs
 page that says where everything else lives.
 
 ## Hover-to-locate (`useHint`)
-Hovering or focusing an `<Open>` link publishes the node id to `useHint`, a tiny
+Hovering or focusing an `<Open>` link publishes a node id to `useHint`, a tiny
 store separate from `useWindowStore` — this is transient pointer feedback, not
 window state, and it churns on every mouseover. Whatever surface holds that node
 answers: `DesktopIcon` pulses (`.hint-tile` in `globals.css`, a radiating `--alert`
@@ -39,6 +39,18 @@ covers the very icon it is pointing at — while fading every *other* icon and
 shortcut to `opacity-25`, so one tile is left lit on a cleared desktop. Menu-bar targets skip the ghosting, since
 the bar is never covered. Both pulses fall back to a static ring under
 `prefers-reduced-motion`.
+
+**What gets published is `hintFor(id)`, not the id itself** (`data/tree.ts`). The
+three surfaces above answer a narrow set of ids — `DESKTOP`, `SHORTCUTS`, and the
+menu bar's items — so a hint naming anything else highlights nothing at all.
+`hintFor` walks up from the node to the nearest ancestor a surface holds: a link to
+`work-binance`, two levels inside a folder, pulses the **Work Experience** icon
+that holds it. The home readme happens to link only top-level ids, so it never
+needed this and is unchanged by it; the assistant names whatever answers the
+question, which is usually deeper, and that is what made the gap visible. It lives
+in `data/tree.ts` beside `pathTo` rather than with the chat code, because
+`OpenLink` needs it too and must not import the assistant's context module — that
+would drag every document's text into the client bundle.
 
 ## State: `useWindowStore` (Zustand)
 ```ts
@@ -209,6 +221,34 @@ serves anything but a portfolio.
 - **CommandPalette** — global search on ⌘K, plus a search field in the menu bar so the feature is findable without knowing the shortcut. Searches node labels, folder paths **and the prose inside the documents**; ranking is label-exact → label-prefix → label-contains → path → body, so typing a folder's name never buries it under the documents that mention it. A body hit renders a snippet with the match lit in accent yellow — paper yellow on the selected row, which is itself accent. Opening a result goes through `useOpenNode()`, the same call the desktop, Explorer and the menu bar make: search is a way *in*, not a fifth definition of what opening means. Overlay sits at `z-40`, above the menu bar and taskbar (`z-10`) and below `Cursor` (`z-50`). Open/closed state is `store/useSearch.ts`, its own store for the same reason as `useHint`: the palette is not a window and must not churn window state.
 - **Cursor** — replaces the pointer with a circle, black ringed in paper (`HALO`) so it stays visible over black chrome as well as the pale desktop, that reads what it is over: a small glyph inside it says what the click does (`+` to open, `↗` to leave the site, a move mark on a drag handle), a hollow ring marks a plain button — an intro chip included, since expanding one is a press like any other, and a caret bar marks a text field. It deliberately stays close to pointer-sized — a cursor that swells into a label is a cursor that covers the thing you are pointing at, and with the native pointer hidden there is no arrow tip left to aim with. Where a target is too small to aim at, the fix belongs to the target, not the cursor: the traffic lights grow to meet the pointer (see **AppWindow**). What it becomes is decided in two passes — `data-cursor` wins where a component knows something the DOM cannot say (a `DesktopIcon`, an `OpenLink` and a `MenuBar` item *inside* a menu each know whether the node behind them is a link or something that opens in the desktop, while the bar's own top-level buttons stay plain chrome; a title bar knows it is a drag handle), and everything else falls back to what the element *is* (`input`, `a[href]`, `button`), so ordinary controls need no annotation. Shapes are a table of **fixed** widths and heights animated as numbers — no layout measuring, no transform scaling, so `rounded-full` ends stay round at every size between. Three guards: it only activates on `(pointer: fine)`, and it adds `.no-native-cursor` from script rather than markup, so no-JS and touch visitors keep a real cursor; and it hides over an `<iframe>` (the PDF viewer), whose pointer events never reach the page.
 - **IntroCard** — the wallpaper intro, centred on the desktop: three lines from `INTRO` in `data/tree.ts`, each a fragment of text ending in a chip (role, city, current company) that expands in place to a longer clause. Wallpaper you can poke at — not a window, no store; the layer holding it is `pointer-events-none` so the rest of the desktop stays clickable, and it recedes with the icons while `peeking`. Two rules keep the motion smooth, and both are structural: **one chip per line, every line `whitespace-nowrap`**, so an opening chip only widens its own line and the text never rewraps (a rewrap is a jump no animation can smooth over); and **no Framer `layout` anywhere in it** — layout animation moves a box by projecting a transform, and the radius correction can't hold a `rounded-full` pill together while the box scales, so the ends pop between radii. The chip instead animates the real width of its clause, which is a genuine layout change: no transform, no distortion, and the centred line slides continuously around it. Timing is one long ease-out (`DURATION`/`EASE` at the top of the file), collapsing to zero under `prefers-reduced-motion`.
+- **Assistant** — the chat panel in the bottom-right corner of the wallpaper, and
+  the front end for `/api/chat`. Deliberately **not** a window and so deliberately
+  not in `useWindowStore`: no title bar, never in the taskbar, can't be dragged or
+  snapped, and it collapses to a circular bubble rather than minimizing to a tab —
+  the same reasoning that keeps the command palette out (see `store/useSearch.ts`).
+  The thread is its own state and the component stays mounted while collapsed, so
+  shrinking hides the conversation without losing it. Rendered as a sibling of
+  `DesktopWrapper`, not inside it: the wrapper carries `isolate`, and anything in
+  there is trapped under the menu bar and taskbar. Sits at `z-30` — over the
+  windows, under the palette (`z-40`) and `Cursor` (`z-50`).
+  The answer's `<Open>` tags are parsed into real `OpenLink`s, which is the whole
+  trick: hovering one in a chat answer pulses the icon holding it exactly as
+  hovering one in the Home readme does, because it is the identical component
+  talking to the identical store. Nothing about hover-to-locate was rebuilt. The
+  parser is a parser rather than a regex replace because the text arrives a
+  character at a time — a half-written tag must not show as markup, and an
+  unclosed one renders its label as plain text until it closes, so a link appears
+  once, finished, instead of flickering into being mid-word.
+  The stream's `hint` events do the part hover cannot: leading someone who does not
+  yet know there is anything to hover. When an answer lands, the **first** place it
+  points at pulses on its own for `LEAD_MS` and then lets go — one id, because
+  `useHint` holds one at a time and replaying the list would flicker through it.
+  The duration is long enough to be followed rather than merely noticed: the
+  visitor reads the sentence first and only then looks up. Hovering any link takes
+  the pulse over before it elapses, so the lead is a suggestion and the pointer
+  outranks it. The input uses `autoFocus`, not an effect keyed on open —
+  `AnimatePresence` is `mode="wait"`, so the panel does not mount until the bubble
+  has finished exiting and an effect firing on the state change finds a null ref.
 - **DesktopWrapper** — root client component; wallpaper, desktop icons from the `DESKTOP` surface. Windows live in a **workspace** div (`top-12 bottom-14 left-7 right-7`) — the whole desktop inset by a page margin, below the menu bar and above the taskbar. That div is `constraintsRef`, so dragging and Expand share one boundary: windows can be dragged over the icon columns, and a maximized window covers them while keeping the page margin. Windows open at `x: 120` so they start clear of the left icons. Renders **every** window as a sibling. Carries `isolate`, which keeps window z-indexes from ever climbing over the menu bar and taskbar. Desktop layers are stated as z-index, bottom to top: colour blocks `z-0`, `IntroCard` `z-10`, icon columns `z-20`, workspace `z-30`. Left to source order the intro painted over the icons — it is wallpaper, and wallpaper must not cover the things you click.
 - **MenuBar** — fixed top bar built from `MENU_BAR`; a menu with a single item renders as a plain button rather than a dropdown. Closes on Escape and outside-click.
 - **DesktopIcon** — one icon button used on both the wallpaper and in Explorer's grid; `link` nodes get an `↗` badge.

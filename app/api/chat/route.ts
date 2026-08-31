@@ -247,9 +247,12 @@ export async function POST(req: Request) {
   if (!upstream.ok || !upstream.body) {
     console.error('[api/chat]', upstream.status, await upstream.text().catch(() => ''));
     const limited = upstream.status === 429;
+    /* The rate limit is the one upstream failure a visitor can actually cause, and
+       the one they can do something about, so it gets a line with a shrug in it
+       rather than an apology. Everything else is the site's fault, not theirs. */
     return fail(
       limited
-        ? 'Too many questions at once — try again in a moment.'
+        ? "Easy on the AI pal, these tokens ain't free!"
         : 'Something went wrong reaching the assistant.',
       limited ? 429 : 502,
     );
