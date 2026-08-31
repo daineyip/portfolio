@@ -99,10 +99,21 @@ A node may carry `image: '/logo.png'` instead of an `icon` key; the image wins.
 A doc may set `fullscreen: true` to open **maximized** — used for readmes, which
 are documents to read rather than files to peek at.
 
-Global search reads the documents' text at **build time**: `lib/search-index.ts` strips
-each `.mdx` to plain text and `app/layout.tsx` — a server component — hands the result to
-the palette as a prop, so it costs the visitor nothing at runtime. That file touches
-`node:fs`, so **only `app/layout.tsx` may import it**; a client import breaks the build.
+The documents' text is extracted at **build time**, once, by
+`scripts/build-content.mjs` — it strips every `.mdx` under `content/` to plain text
+and writes `lib/content-text.json`, keyed by path under `content/`. It runs from the
+`predev` and `prebuild` npm scripts, so `npm run dev` and `npm run build` are the
+only commands anyone has to know; the JSON is generated but committed, so a fresh
+clone type-checks before either has run.
+
+Two things consume it and neither can reach the disk, which is the whole reason it
+exists: `lib/search-index.ts` maps those paths onto node ids for the palette
+(`app/layout.tsx` hands the result over as a prop), and the chat endpoint runs on
+the edge, where `node:fs` does not exist. Nothing outside the script touches the
+filesystem, so `search-index.ts` is now importable from anywhere. **The stripping
+rules live in the script and nowhere else** — a second copy is how the search
+snippets and the assistant start disagreeing about what a document says.
+
 Because a compiled `Body` cannot be read back as text, each doc node names its own path
 under `content/` in a `file` field. A doc without one still matches on its label.
 
@@ -113,6 +124,86 @@ and documents about that work — product sites, Figma files, photos, PDFs. Docs
 tree. No frontmatter: labels and ordering are TypeScript, so `label` is free to
 differ from the filename. `useOpenNode()` is the single definition of what opening
 a node means, shared by desktop, Explorer and menu bar.
+
+## The assistant (`app/api/chat/route.ts`)
+
+An edge function that answers questions about the work and **points at where the
+answer lives on the desktop**. `POST /api/chat` takes
+`{ messages: [{ role, content }] }` and streams SSE back: `text` deltas, `hint`
+events, then `done` — or `error`.
+
+The answers are deliberately **one short sentence**, because the highlight is
+carrying the other half of the message. The prompt's Voice section is the dial:
+the tag says *where*, so the words only have to say *what*, and an answer that
+describes a folder path in prose is one that has forgotten the icon is already
+pulsing. `MAX_COMPLETION_TOKENS` is a backstop under that, not the mechanism.
+
+Its context is assembled from `data/tree.ts` itself in `lib/portfolio-context.ts`,
+so the brief and the desktop cannot drift — adding a company folder puts it in
+front of the model on the next deploy, under the id the desktop actually uses. It
+comes in two halves and the split is the point. The **catalog** — every node's id,
+kind, label, path and surface — always ships, because it is what lets the model
+point anywhere; it can name a folder it was given no prose for, which is how a
+question about the resume reaches a PDF. The **prose** is chosen per question by
+`documentsFor`, scored per term over label, path and body.
+
+Sending all sixteen documents cost ~9.6k tokens a message and overran Groq's
+free-tier 8k-per-minute ceiling outright. Per-question selection put it near 4k.
+Retrieval here is a budget decision before it is a quality one — but it is both,
+since a 27B model loses the thread in sixteen documents faster than in three.
+
+**Hints are read out of the prose, not sent alongside it.** The model points at
+things by writing `<Open id="…">label</Open>` — the same tag the `.mdx` files use —
+and the route scans the stream for completed tags, emitting a `hint` the moment one
+appears. One channel, so they cannot disagree: the icon starts pulsing while the
+sentence naming it is still being typed, and the client renders the tag as a real
+`OpenLink`, which makes hover behave exactly as it does in the home readme, for
+free. A hallucinated id costs a link and nothing more — `OpenLink` already renders
+an unknown id as plain text, and the route drops it from the hints.
+
+**A hint is resolved to something on screen before it is sent** (`hintFor`). The
+hint surfaces answer a narrow set of ids: `DesktopIcon` pulses when the id is its
+own, `DesktopWrapper` clears the desktop only for a `DESKTOP` or `SHORTCUTS` id,
+`MenuBar` lights the menu holding it. The home readme links only such ids, which is
+why its hints work; the assistant names whatever answers the question, and
+`work-binance` — two levels inside a folder — would highlight nothing at all. So a
+hint carries `node` (what was named) and `id` (its nearest ancestor a surface
+holds, which is what `useHint` gets). An answer about Binance pulses **Work
+Experience**, the icon the visitor can actually see and click. Hints dedupe on `id`,
+since two documents in one folder are one place to look.
+
+Note `useHint` holds **one id at a time**, so a client must not replay a whole
+answer's hints into it in sequence — that flickers and lands on the last. Hover
+stays the model, as on the home page; the events are for leading the visitor
+*before* they hover.
+
+The provider is configuration, not code. The route speaks the OpenAI-compatible
+`/chat/completions` shape over plain `fetch` — no vendor SDK, so the edge bundle
+carries no client library — which every cheap host of open models answers: Groq,
+Together, OpenRouter, DeepInfra, Fireworks, a local Ollama. `CHAT_API_KEY`,
+`CHAT_BASE_URL` and `CHAT_MODEL` pick one; the default is Qwen3.8 27B on Groq.
+Slugs differ per host for the same weights and hosts retire them, so `CHAT_MODEL`
+is checked against `GET {CHAT_BASE_URL}/models`, never assumed — a 404
+`model_not_found` in the server log is what a stale one looks like.
+
+Qwen3 is a reasoning model, and nothing here needs it: the answer is in the
+excerpts, and the job is to restate it and attach the right ids. `reasoning_effort`
+turns it off — fewer tokens billed, a faster first word, and no chain of thought to
+leak. Allowed values are per-model (the qwen3 family takes `none`, gpt-oss would
+400 on it), so it is `CHAT_REASONING_EFFORT`, and an empty string omits the
+parameter for a provider that has never heard of it.
+
+The route still **filters `<think></think>` out of the stream**, holding back a few
+characters so a tag split across two chunks is still caught. That is deliberate
+belt-and-braces: the parameter is honoured by only some models, and when it is
+ignored the thinking arrives inline. The filter is what keeps a wrong env var a
+config mistake instead of a visitor reading the model's notes to itself.
+
+Guards: same-origin when an `Origin` header is present, a turn cap, a per-message
+length cap, and a 503 when the key is missing. There is deliberately **no rate
+limiter** — an edge function has no shared memory to keep counts in, so that
+belongs in front of the route (Vercel WAF, or Upstash keyed by IP) before this
+serves anything but a portfolio.
 
 ## Components
 - **CommandPalette** — global search on ⌘K, plus a search field in the menu bar so the feature is findable without knowing the shortcut. Searches node labels, folder paths **and the prose inside the documents**; ranking is label-exact → label-prefix → label-contains → path → body, so typing a folder's name never buries it under the documents that mention it. A body hit renders a snippet with the match lit in accent yellow — paper yellow on the selected row, which is itself accent. Opening a result goes through `useOpenNode()`, the same call the desktop, Explorer and the menu bar make: search is a way *in*, not a fifth definition of what opening means. Overlay sits at `z-40`, above the menu bar and taskbar (`z-10`) and below `Cursor` (`z-50`). Open/closed state is `store/useSearch.ts`, its own store for the same reason as `useHint`: the palette is not a window and must not churn window state.

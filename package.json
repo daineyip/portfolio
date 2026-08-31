@@ -2,7 +2,9 @@
   "name": "portfolio-os",
   "private": true,
   "scripts": {
+    "predev": "node scripts/build-content.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/build-content.mjs",
     "build": "next build",
     "start": "next start"
   },
