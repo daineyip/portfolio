@@ -28,7 +28,7 @@ The `home` node is a `doc`, not a folder: it opens maximized as the read-me-firs
 page that says where everything else lives.
 
 ## Hover-to-locate (`useHint`)
-Hovering or focusing an `<Open>` link publishes the node id to `useHint`, a tiny
+Hovering or focusing an `<Open>` link publishes a node id to `useHint`, a tiny
 store separate from `useWindowStore` — this is transient pointer feedback, not
 window state, and it churns on every mouseover. Whatever surface holds that node
 answers: `DesktopIcon` pulses (`.hint-tile` in `globals.css`, a radiating `--alert`
@@ -39,6 +39,18 @@ covers the very icon it is pointing at — while fading every *other* icon and
 shortcut to `opacity-25`, so one tile is left lit on a cleared desktop. Menu-bar targets skip the ghosting, since
 the bar is never covered. Both pulses fall back to a static ring under
 `prefers-reduced-motion`.
+
+**What gets published is `hintFor(id)`, not the id itself** (`data/tree.ts`). The
+three surfaces above answer a narrow set of ids — `DESKTOP`, `SHORTCUTS`, and the
+menu bar's items — so a hint naming anything else highlights nothing at all.
+`hintFor` walks up from the node to the nearest ancestor a surface holds: a link to
+`work-binance`, two levels inside a folder, pulses the **Work Experience** icon
+that holds it. The home readme happens to link only top-level ids, so it never
+needed this and is unchanged by it; the assistant names whatever answers the
+question, which is usually deeper, and that is what made the gap visible. It lives
+in `data/tree.ts` beside `pathTo` rather than with the chat code, because
+`OpenLink` needs it too and must not import the assistant's context module — that
+would drag every document's text into the client bundle.
 
 ## State: `useWindowStore` (Zustand)
 ```ts
@@ -99,10 +111,21 @@ A node may carry `image: '/logo.png'` instead of an `icon` key; the image wins.
 A doc may set `fullscreen: true` to open **maximized** — used for readmes, which
 are documents to read rather than files to peek at.
 
-Global search reads the documents' text at **build time**: `lib/search-index.ts` strips
-each `.mdx` to plain text and `app/layout.tsx` — a server component — hands the result to
-the palette as a prop, so it costs the visitor nothing at runtime. That file touches
-`node:fs`, so **only `app/layout.tsx` may import it**; a client import breaks the build.
+The documents' text is extracted at **build time**, once, by
+`scripts/build-content.mjs` — it strips every `.mdx` under `content/` to plain text
+and writes `lib/content-text.json`, keyed by path under `content/`. It runs from the
+`predev` and `prebuild` npm scripts, so `npm run dev` and `npm run build` are the
+only commands anyone has to know; the JSON is generated but committed, so a fresh
+clone type-checks before either has run.
+
+Two things consume it and neither can reach the disk, which is the whole reason it
+exists: `lib/search-index.ts` maps those paths onto node ids for the palette
+(`app/layout.tsx` hands the result over as a prop), and the chat endpoint runs on
+the edge, where `node:fs` does not exist. Nothing outside the script touches the
+filesystem, so `search-index.ts` is now importable from anywhere. **The stripping
+rules live in the script and nowhere else** — a second copy is how the search
+snippets and the assistant start disagreeing about what a document says.
+
 Because a compiled `Body` cannot be read back as text, each doc node names its own path
 under `content/` in a `file` field. A doc without one still matches on its label.
 
@@ -114,10 +137,118 @@ tree. No frontmatter: labels and ordering are TypeScript, so `label` is free to
 differ from the filename. `useOpenNode()` is the single definition of what opening
 a node means, shared by desktop, Explorer and menu bar.
 
+## The assistant (`app/api/chat/route.ts`)
+
+An edge function that answers questions about the work and **points at where the
+answer lives on the desktop**. `POST /api/chat` takes
+`{ messages: [{ role, content }] }` and streams SSE back: `text` deltas, `hint`
+events, then `done` — or `error`.
+
+The answers are deliberately **one short sentence**, because the highlight is
+carrying the other half of the message. The prompt's Voice section is the dial:
+the tag says *where*, so the words only have to say *what*, and an answer that
+describes a folder path in prose is one that has forgotten the icon is already
+pulsing. `MAX_COMPLETION_TOKENS` is a backstop under that, not the mechanism.
+
+Its context is assembled from `data/tree.ts` itself in `lib/portfolio-context.ts`,
+so the brief and the desktop cannot drift — adding a company folder puts it in
+front of the model on the next deploy, under the id the desktop actually uses. It
+comes in two halves and the split is the point. The **catalog** — every node's id,
+kind, label, path and surface — always ships, because it is what lets the model
+point anywhere; it can name a folder it was given no prose for, which is how a
+question about the resume reaches a PDF. The **prose** is chosen per question by
+`documentsFor`, scored per term over label, path and body.
+
+Sending all sixteen documents cost ~9.6k tokens a message and overran Groq's
+free-tier 8k-per-minute ceiling outright. Per-question selection put it near 4k.
+Retrieval here is a budget decision before it is a quality one — but it is both,
+since a 27B model loses the thread in sixteen documents faster than in three.
+
+**Hints are read out of the prose, not sent alongside it.** The model points at
+things by writing `<Open id="…">label</Open>` — the same tag the `.mdx` files use —
+and the route scans the stream for completed tags, emitting a `hint` the moment one
+appears. One channel, so they cannot disagree: the icon starts pulsing while the
+sentence naming it is still being typed, and the client renders the tag as a real
+`OpenLink`, which makes hover behave exactly as it does in the home readme, for
+free. A hallucinated id costs a link and nothing more — `OpenLink` already renders
+an unknown id as plain text, and the route drops it from the hints.
+
+**A hint is resolved to something on screen before it is sent** (`hintFor`). The
+hint surfaces answer a narrow set of ids: `DesktopIcon` pulses when the id is its
+own, `DesktopWrapper` clears the desktop only for a `DESKTOP` or `SHORTCUTS` id,
+`MenuBar` lights the menu holding it. The home readme links only such ids, which is
+why its hints work; the assistant names whatever answers the question, and
+`work-binance` — two levels inside a folder — would highlight nothing at all. So a
+hint carries `node` (what was named) and `id` (its nearest ancestor a surface
+holds, which is what `useHint` gets). An answer about Binance pulses **Work
+Experience**, the icon the visitor can actually see and click. Hints dedupe on `id`,
+since two documents in one folder are one place to look.
+
+Note `useHint` holds **one id at a time**, so a client must not replay a whole
+answer's hints into it in sequence — that flickers and lands on the last. Hover
+stays the model, as on the home page; the events are for leading the visitor
+*before* they hover.
+
+The provider is configuration, not code. The route speaks the OpenAI-compatible
+`/chat/completions` shape over plain `fetch` — no vendor SDK, so the edge bundle
+carries no client library — which every cheap host of open models answers: Groq,
+Together, OpenRouter, DeepInfra, Fireworks, a local Ollama. `CHAT_API_KEY`,
+`CHAT_BASE_URL` and `CHAT_MODEL` pick one; the default is Qwen3.8 27B on Groq.
+Slugs differ per host for the same weights and hosts retire them, so `CHAT_MODEL`
+is checked against `GET {CHAT_BASE_URL}/models`, never assumed — a 404
+`model_not_found` in the server log is what a stale one looks like.
+
+Qwen3 is a reasoning model, and nothing here needs it: the answer is in the
+excerpts, and the job is to restate it and attach the right ids. `reasoning_effort`
+turns it off — fewer tokens billed, a faster first word, and no chain of thought to
+leak. Allowed values are per-model (the qwen3 family takes `none`, gpt-oss would
+400 on it), so it is `CHAT_REASONING_EFFORT`, and an empty string omits the
+parameter for a provider that has never heard of it.
+
+The route still **filters `<think></think>` out of the stream**, holding back a few
+characters so a tag split across two chunks is still caught. That is deliberate
+belt-and-braces: the parameter is honoured by only some models, and when it is
+ignored the thinking arrives inline. The filter is what keeps a wrong env var a
+config mistake instead of a visitor reading the model's notes to itself.
+
+Guards: same-origin when an `Origin` header is present, a turn cap, a per-message
+length cap, and a 503 when the key is missing. There is deliberately **no rate
+limiter** — an edge function has no shared memory to keep counts in, so that
+belongs in front of the route (Vercel WAF, or Upstash keyed by IP) before this
+serves anything but a portfolio.
+
 ## Components
 - **CommandPalette** — global search on ⌘K, plus a search field in the menu bar so the feature is findable without knowing the shortcut. Searches node labels, folder paths **and the prose inside the documents**; ranking is label-exact → label-prefix → label-contains → path → body, so typing a folder's name never buries it under the documents that mention it. A body hit renders a snippet with the match lit in accent yellow — paper yellow on the selected row, which is itself accent. Opening a result goes through `useOpenNode()`, the same call the desktop, Explorer and the menu bar make: search is a way *in*, not a fifth definition of what opening means. Overlay sits at `z-40`, above the menu bar and taskbar (`z-10`) and below `Cursor` (`z-50`). Open/closed state is `store/useSearch.ts`, its own store for the same reason as `useHint`: the palette is not a window and must not churn window state.
 - **Cursor** — replaces the pointer with a circle, black ringed in paper (`HALO`) so it stays visible over black chrome as well as the pale desktop, that reads what it is over: a small glyph inside it says what the click does (`+` to open, `↗` to leave the site, a move mark on a drag handle), a hollow ring marks a plain button — an intro chip included, since expanding one is a press like any other, and a caret bar marks a text field. It deliberately stays close to pointer-sized — a cursor that swells into a label is a cursor that covers the thing you are pointing at, and with the native pointer hidden there is no arrow tip left to aim with. Where a target is too small to aim at, the fix belongs to the target, not the cursor: the traffic lights grow to meet the pointer (see **AppWindow**). What it becomes is decided in two passes — `data-cursor` wins where a component knows something the DOM cannot say (a `DesktopIcon`, an `OpenLink` and a `MenuBar` item *inside* a menu each know whether the node behind them is a link or something that opens in the desktop, while the bar's own top-level buttons stay plain chrome; a title bar knows it is a drag handle), and everything else falls back to what the element *is* (`input`, `a[href]`, `button`), so ordinary controls need no annotation. Shapes are a table of **fixed** widths and heights animated as numbers — no layout measuring, no transform scaling, so `rounded-full` ends stay round at every size between. Three guards: it only activates on `(pointer: fine)`, and it adds `.no-native-cursor` from script rather than markup, so no-JS and touch visitors keep a real cursor; and it hides over an `<iframe>` (the PDF viewer), whose pointer events never reach the page.
 - **IntroCard** — the wallpaper intro, centred on the desktop: three lines from `INTRO` in `data/tree.ts`, each a fragment of text ending in a chip (role, city, current company) that expands in place to a longer clause. Wallpaper you can poke at — not a window, no store; the layer holding it is `pointer-events-none` so the rest of the desktop stays clickable, and it recedes with the icons while `peeking`. Two rules keep the motion smooth, and both are structural: **one chip per line, every line `whitespace-nowrap`**, so an opening chip only widens its own line and the text never rewraps (a rewrap is a jump no animation can smooth over); and **no Framer `layout` anywhere in it** — layout animation moves a box by projecting a transform, and the radius correction can't hold a `rounded-full` pill together while the box scales, so the ends pop between radii. The chip instead animates the real width of its clause, which is a genuine layout change: no transform, no distortion, and the centred line slides continuously around it. Timing is one long ease-out (`DURATION`/`EASE` at the top of the file), collapsing to zero under `prefers-reduced-motion`.
+- **Assistant** — the chat panel in the bottom-right corner of the wallpaper, and
+  the front end for `/api/chat`. Deliberately **not** a window and so deliberately
+  not in `useWindowStore`: no title bar, never in the taskbar, can't be dragged or
+  snapped, and it collapses to a circular bubble rather than minimizing to a tab —
+  the same reasoning that keeps the command palette out (see `store/useSearch.ts`).
+  The thread is its own state and the component stays mounted while collapsed, so
+  shrinking hides the conversation without losing it. Rendered as a sibling of
+  `DesktopWrapper`, not inside it: the wrapper carries `isolate`, and anything in
+  there is trapped under the menu bar and taskbar. Sits at `z-30` — over the
+  windows, under the palette (`z-40`) and `Cursor` (`z-50`).
+  The answer's `<Open>` tags are parsed into real `OpenLink`s, which is the whole
+  trick: hovering one in a chat answer pulses the icon holding it exactly as
+  hovering one in the Home readme does, because it is the identical component
+  talking to the identical store. Nothing about hover-to-locate was rebuilt. The
+  parser is a parser rather than a regex replace because the text arrives a
+  character at a time — a half-written tag must not show as markup, and an
+  unclosed one renders its label as plain text until it closes, so a link appears
+  once, finished, instead of flickering into being mid-word.
+  The stream's `hint` events do the part hover cannot: leading someone who does not
+  yet know there is anything to hover. When an answer lands, the **first** place it
+  points at pulses on its own for `LEAD_MS` and then lets go — one id, because
+  `useHint` holds one at a time and replaying the list would flicker through it.
+  The duration is long enough to be followed rather than merely noticed: the
+  visitor reads the sentence first and only then looks up. Hovering any link takes
+  the pulse over before it elapses, so the lead is a suggestion and the pointer
+  outranks it. The input uses `autoFocus`, not an effect keyed on open —
+  `AnimatePresence` is `mode="wait"`, so the panel does not mount until the bubble
+  has finished exiting and an effect firing on the state change finds a null ref.
 - **DesktopWrapper** — root client component; wallpaper, desktop icons from the `DESKTOP` surface. Windows live in a **workspace** div (`top-12 bottom-14 left-7 right-7`) — the whole desktop inset by a page margin, below the menu bar and above the taskbar. That div is `constraintsRef`, so dragging and Expand share one boundary: windows can be dragged over the icon columns, and a maximized window covers them while keeping the page margin. Windows open at `x: 120` so they start clear of the left icons. Renders **every** window as a sibling. Carries `isolate`, which keeps window z-indexes from ever climbing over the menu bar and taskbar. Desktop layers are stated as z-index, bottom to top: colour blocks `z-0`, `IntroCard` `z-10`, icon columns `z-20`, workspace `z-30`. Left to source order the intro painted over the icons — it is wallpaper, and wallpaper must not cover the things you click.
 - **MenuBar** — fixed top bar built from `MENU_BAR`; a menu with a single item renders as a plain button rather than a dropdown. Closes on Escape and outside-click.
 - **DesktopIcon** — one icon button used on both the wallpaper and in Explorer's grid; `link` nodes get an `↗` badge.

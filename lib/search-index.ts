@@ -1,56 +1,30 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { TREE, type Node } from '@/data/tree';
+import CONTENT_TEXT from './content-text.json';
 
 /**
  * Plain text of every document, keyed by node id, so global search can look inside
  * the readmes rather than only at their labels.
  *
- * Built on the **server**, at build time: the route is statically prerendered, so
- * this runs once during `next build` and ships as a prop, costing the visitor
- * nothing at runtime. `app/layout.tsx` is the only place allowed to import this —
- * it reaches for `node:fs`, which breaks any client bundle that pulls it in.
+ * The text itself is produced at build time by scripts/build-content.mjs and lands
+ * in content-text.json keyed by path under `content/`; this module only maps those
+ * paths onto node ids. Nothing here touches the disk, so — unlike the earlier
+ * `node:fs` version — it is safe to import from anywhere, the edge chat endpoint
+ * included. app/layout.tsx still calls it on the server so the palette receives
+ * plain data as a prop.
  *
  * A doc node's `Body` is a compiled component and cannot be read back as text, so
  * each doc names its own `file` under `content/`; see data/tree.ts.
  */
-const CONTENT = path.join(process.cwd(), 'content');
-
-/*
- * MDX to plain text, in the order the rules have to run.
- *
- * Deliberately regex rather than a real MDX parser: the corpus is 15 files and
- * ~28KB, the output is only ever matched against and shown as a snippet, and a
- * parser would be a dependency and a build step to maintain for no gain in either.
- * The one rule that matters is that JSX keeps its *inner text* — `<Open id="work">
- * Work Experience</Open>` has to remain findable as "Work Experience".
- */
-const STRIP: Array<[RegExp, string]> = [
-  [/```[\s\S]*?```/g, ' '], // fenced code
-  [/^import .*$/gm, ' '], // MDX imports
-  [/<[^>]+>/g, ' '], // JSX tags, keeping what sat between them
-  [/!\[([^\]]*)\]\([^)]*\)/g, '$1'], // images, keeping alt text
-  [/\[([^\]]*)\]\([^)]*\)/g, '$1'], // links, keeping the label
-  [/^[>\s]*[-*+]\s+/gm, ' '], // bullets
-  [/[#*_`~|]/g, ' '], // leftover markdown punctuation
-  [/&[a-z]+;/gi, ' '], // entities
-  [/\s+/g, ' '], // collapse
-];
-
-function toText(mdx: string): string {
-  return STRIP.reduce((text, [pattern, to]) => text.replace(pattern, to), mdx).trim();
-}
+const TEXT = CONTENT_TEXT as Record<string, string>;
 
 function walk(nodes: Node[], into: Record<string, string>) {
   for (const node of nodes) {
     if (node.kind === 'folder') walk(node.children, into);
     if (!node.file) continue;
-    try {
-      into[node.id] = toText(readFileSync(path.join(CONTENT, node.file), 'utf8'));
-    } catch {
-      /* A doc naming a file that isn't there should cost it its full text, not the
-         whole build — it still matches on its label. */
-    }
+    /* A doc naming a file that isn't there keeps its label and loses its full
+       text — it should cost that document its prose, not the whole build. */
+    const text = TEXT[node.file];
+    if (text) into[node.id] = text;
   }
   return into;
 }

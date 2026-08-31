@@ -1,6 +1,7 @@
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import './globals.css';
+import Assistant from '@/components/Assistant';
 import CommandPalette from '@/components/CommandPalette';
 import Cursor from '@/components/Cursor';
 import DesktopWrapper from '@/components/DesktopWrapper';
@@ -34,6 +35,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <MenuBar />
           <Taskbar />
           <CommandPalette index={searchIndex} />
+          {/* Floats over the windows in the bottom-right corner; inside the gate,
+              since a chat panel needs the desktop it points at. */}
+          <Assistant />
           <Shortcuts />
           {children}
         </div>

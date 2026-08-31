@@ -531,6 +531,41 @@ export function childrenOf(id: string): Node[] {
   return node?.kind === 'folder' ? node.children : [];
 }
 
+/*
+ * The ids something on screen can actually answer. `DesktopIcon` pulses when the
+ * hint is its own id, `DesktopWrapper` clears the desktop only for a DESKTOP or
+ * SHORTCUTS id, and `MenuBar` lights the menu holding one — so a hint naming
+ * anything else highlights nothing at all.
+ */
+const SURFACED: ReadonlySet<string> = new Set([
+  ...DESKTOP,
+  ...SHORTCUTS,
+  ...MENU_BAR.flatMap((menu) => menu.items),
+]);
+
+/**
+ * The id to publish as a hint for a node: the node itself if a surface holds it,
+ * otherwise its nearest ancestor that one does.
+ *
+ * "Where is this?" is answered by the thing the visitor can see and click, and for
+ * `work-binance` — two levels inside a folder — that is the Work Experience icon
+ * on the desktop, not the folder itself, which is not on screen. Hinting the raw
+ * id pulses nothing.
+ *
+ * The home readme happens to link only top-level ids, so it never needed this and
+ * `hintFor` leaves those exactly as they were. The assistant names whatever
+ * answers the question, which is usually deeper, and that is what made the gap
+ * visible. Null when nothing on screen leads there.
+ */
+export function hintFor(id: string): string | null {
+  const trail = pathTo(id);
+  if (!trail) return null;
+  for (let i = trail.length - 1; i >= 0; i -= 1) {
+    if (SURFACED.has(trail[i].id)) return trail[i].id;
+  }
+  return null;
+}
+
 /** Ancestor chain for a node, root first, including the node itself. */
 export function pathTo(id: string, nodes: Node[] = TREE, trail: Node[] = []): Node[] | undefined {
   for (const node of nodes) {

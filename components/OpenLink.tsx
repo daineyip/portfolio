@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { findNode } from '@/data/tree';
+import { findNode, hintFor } from '@/data/tree';
 import { useHint } from '@/store/useHint';
 import { useOpenNode } from './useOpenNode';
 
@@ -23,7 +23,11 @@ export default function OpenLink({ id, children }: { id: string; children?: Reac
   if (!node) return <>{children}</>;
 
   const label = children ?? node.label;
-  const point = () => setHint(node.id);
+  /* Point at what the visitor can see, not at the node itself: a link to
+     `work-binance` pulses the Work Experience icon that holds it. For a top-level
+     id — everything the home readme links — this resolves to itself, so those are
+     unchanged. See hintFor in data/tree.ts. */
+  const point = () => setHint(hintFor(node.id) ?? node.id);
   const clear = () => setHint(null);
 
   return (
