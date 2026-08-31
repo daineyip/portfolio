@@ -2,7 +2,13 @@
  * Every .mdx under content/, stripped to plain text, written to
  * lib/content-text.json keyed by its path under content/.
  *
- * Run before `next dev` and `next build` (see the pre* scripts in package.json).
+ * Run it by hand after editing anything under content/: `npm run content`. It also
+ * runs from `prebuild`, which is not redundant with that — it is the guard against
+ * the hand-run being forgotten, since a stale file means a search index and an
+ * assistant that have not read the edit, shipped without a symptom. It is ~70ms.
+ *
+ * The output is committed, because nothing generates it on install any more and a
+ * fresh clone has to type-check and run `next dev` before anyone has built.
  *
  * Why a build step rather than reading the files where they are needed: the two
  * things that want this text can't reach the disk. Global search hands it to a

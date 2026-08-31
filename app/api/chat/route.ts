@@ -1,4 +1,5 @@
-import { NODE_IDS, hintFor, systemPromptFor } from '@/lib/portfolio-context';
+import { hintFor } from '@/data/tree';
+import { NODE_IDS, systemPromptFor } from '@/lib/portfolio-context';
 
 /**
  * POST /api/chat — the desktop's assistant.
@@ -31,7 +32,7 @@ import { NODE_IDS, hintFor, systemPromptFor } from '@/lib/portfolio-context';
  * readme's <Open> links publish — one a surface can answer. `node` is what the
  * answer actually named, which may be deeper: an answer about `work-binance`
  * pulses `work`, because that is the icon the visitor can see and click. See
- * `hintFor` in lib/portfolio-context.ts.
+ * `hintFor` in data/tree.ts.
  *
  * `useHint` holds one id at a time, so a client should not replay every hint into
  * it in sequence — that flickers through them and lands on the last. Hover is the

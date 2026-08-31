@@ -113,10 +113,12 @@ are documents to read rather than files to peek at.
 
 The documents' text is extracted at **build time**, once, by
 `scripts/build-content.mjs` — it strips every `.mdx` under `content/` to plain text
-and writes `lib/content-text.json`, keyed by path under `content/`. It runs from the
-`predev` and `prebuild` npm scripts, so `npm run dev` and `npm run build` are the
-only commands anyone has to know; the JSON is generated but committed, so a fresh
-clone type-checks before either has run.
+and writes `lib/content-text.json`, keyed by path under `content/`. Run it by hand with **`npm run content`** after editing
+anything under `content/`; it also runs from `prebuild`, which is the guard against
+that being forgotten — a stale file shows no symptom locally and ships a search
+index and an assistant that have not read the edit. The JSON is generated but
+committed, so a fresh clone type-checks and runs `next dev` before anyone has
+built.
 
 Two things consume it and neither can reach the disk, which is the whole reason it
 exists: `lib/search-index.ts` maps those paths onto node ids for the palette

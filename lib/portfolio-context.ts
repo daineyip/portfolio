@@ -9,7 +9,6 @@ import {
   STATUS_OPTIONS,
   TREE,
   findNode,
-  hintFor,
   type Node,
 } from '@/data/tree';
 import { buildSearchIndex } from './search-index';
@@ -73,10 +72,6 @@ function collectIds(nodes: Node[], into: Set<string> = new Set()): Set<string> {
 
 /** Every id the model is allowed to name. Anything else is dropped downstream. */
 export const NODE_IDS: ReadonlySet<string> = collectIds(TREE);
-
-/* Re-exported so the chat route has one import for its context needs; the
-   definition lives with the tree, since OpenLink needs it too. */
-export { hintFor };
 
 const INDEX = buildSearchIndex();
 
@@ -145,7 +140,7 @@ const FALLBACK = ['home', 'identity-bio'];
  * runs out. Everything else stays in the catalog, which the model still has, so an
  * unsent document can still be pointed at — just not quoted.
  */
-export function documentsFor(query: string): string {
+function documentsFor(query: string): string {
   const words = terms(query);
 
   const ranked = Object.entries(INDEX)

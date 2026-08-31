@@ -127,14 +127,21 @@ export default function Assistant() {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight });
   }, [turns, busy]);
 
-  /* A pulse this component started is a pulse it has to put down — on unmount, and
-     whenever a new question makes the last answer's lead stale. */
+  /* A pulse this component started is a pulse it has to put down — whenever a new
+     question makes the last answer's lead stale, and on unmount. */
   const dropLead = () => {
     if (lead.current) clearTimeout(lead.current);
     lead.current = null;
     setHint(null);
   };
-  useEffect(() => dropLead, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(
+    () => () => {
+      if (lead.current) clearTimeout(lead.current);
+      setHint(null);
+    },
+    [setHint],
+  );
 
   async function send() {
     const question = draft.trim();
