@@ -330,20 +330,35 @@ into and out of pinned; saving on every pinned render would overwrite the stored
 position with the zeroes just written, which is how maximized → half loses it.
 
 ## Responsive: "Boring Mode"
-Under 768px, bypass the desktop metaphor and window store entirely — render a plain
-vertically scrolling page with the same data in basic sections.
+Under 768px the desktop metaphor is bypassed entirely — no windows, no window
+store, no cursor chrome — and the same content is served as ordinary pages.
 
-Until that exists, `SmallScreen` says so: below `md` the shell is hidden and a card
-asks for a bigger screen. The gate is **pure CSS** — `hidden md:contents` on the
-wrapper, `md:hidden` on the notice — so it is correct in the HTML before any script
-runs and cannot mismatch on hydration. `display: contents` rather than a real box,
-so the shell's absolutely positioned parts still resolve against `<body>`.
+The gate is **pure CSS**: `hidden md:contents` on the shell in `app/layout.tsx`,
+`md:hidden` on each page. So it is correct in the HTML before any script runs and
+cannot mismatch on hydration. `display: contents` rather than a real box, so the
+shell's absolutely positioned parts still resolve against `<body>`. The body only
+locks to the viewport at `md` and up (`md:h-screen md:overflow-hidden`); below that
+the page has to scroll.
+
+Boring Mode **is** the routes, which is why `{children}` renders outside the gate:
+- `app/page.tsx` → `components/boring/Home.tsx`: the intro, then the bio, then the
+  three folders named by `MOBILE_SECTIONS` as grids of tiles.
+- `app/[node]/page.tsx` → `FolderPage`: one folder as one scroll — its readme, then
+  its media, then what leaves the site. Ordered by kind, not by tree order, since
+  the tree orders for the Explorer grid. Only folders and docs get a page; a link
+  leaves and a PDF opens in the browser's own viewer.
+
+Two things do not survive the trip from the desktop and are rebuilt rather than
+reused. `<Open id="...">` means "open a window", which is meaningless here, so
+`Prose` passes a `components` override to the compiled MDX that turns it into a
+`Link` (or an outbound `<a>`) — the global provider is untouched. And `IntroCard`
+expands its chips sideways, which does not fit 390px, so `MobileIntro` drops the
+clause below the line instead.
 
 `Cursor` renders **outside** that gate, as a sibling of both: a narrow window on a
-desktop is still a desktop, so the notice gets the same cursor as everything else.
-It has to be outside rather than width-gated — `display: none` does not unmount, so
-inside the gate it would be hidden while its effect still stripped the native cursor,
-leaving that screen with no pointer at all.
+desktop is still a desktop. It has to be outside rather than width-gated —
+`display: none` does not unmount, so inside the gate it would be hidden while its
+effect still stripped the native cursor, leaving that screen with no pointer.
 
 ## Build order
 1. window store → 2. DesktopWrapper/Taskbar/DesktopIcon → 3. AppWindow drag + z-index focus with mock data → 4. WindowProvider context → 5. the app templates + MenuBar → 6. neo-brutalist styling pass → 7. Boring Mode.

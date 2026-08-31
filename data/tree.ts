@@ -277,6 +277,7 @@ export const TREE: Node[] = [
             icon: 'image',
             src: '/founders.png',
             alt: 'The WorkInProgress founding team at a restaurant patio in downtown Vancouver',
+            caption: 'the founders!',
           },
           {
             kind: 'image',
@@ -285,6 +286,7 @@ export const TREE: Node[] = [
             icon: 'image',
             src: '/team.jpg',
             alt: 'The six-person WorkInProgress team at an indoor kart-racing track',
+            caption: 'took the team karting :)',
           },
           { kind: 'link', id: 'project-wip-site', label: 'wipnetwork.ca', icon: 'globe', href: 'https://www.wipnetwork.ca' },
         ],
@@ -495,6 +497,13 @@ export const INTRO: { lines: Array<{ before: string; chip: IntroChip }> } = {
 
 /** Desktop icons, in display order. */
 export const DESKTOP: string[] = ['home', 'work', 'projects', 'research', 'trash'];
+
+/**
+ * The sections Boring Mode lists, in order. Mobile has no desktop to arrange, so
+ * it reads the tree top-down: these three folders, then each of their children as
+ * a tile leading to one scrollable page.
+ */
+export const MOBILE_SECTIONS: string[] = ['work', 'projects', 'research'];
 
 /** Pinned shortcuts down the right edge — deployed sites, not folders. */
 export const SHORTCUTS: string[] = ['shortcut-wip', 'shortcut-oval'];

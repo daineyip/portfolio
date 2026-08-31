@@ -130,12 +130,15 @@ export default function Cursor() {
 
   useEffect(() => {
     /*
-      Pointer type only, never width: this renders outside the `md` gate, so a
-      narrow window on a desktop keeps the custom cursor over the small-screen
-      notice. (It has to live outside that gate — `display: none` would hide the
-      cursor while its effect still stripped the native one.)
+      Pointer *and* width. The pointer test keeps it off touch screens; the width
+      test keeps it out of Boring Mode, which is a plain scrolling site rather than
+      an OS and has no chrome for a cursor to explain.
+
+      It still has to live outside the `md` gate in the layout rather than inside
+      it: `display: none` does not unmount, so gating it there would hide the cursor
+      while its effect still stripped the native one.
     */
-    if (!window.matchMedia('(pointer: fine)').matches) return;
+    if (!window.matchMedia('(pointer: fine) and (min-width: 768px)').matches) return;
     setActive(true);
     document.documentElement.classList.add('no-native-cursor');
     return () => document.documentElement.classList.remove('no-native-cursor');

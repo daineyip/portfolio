@@ -7,7 +7,6 @@ import Cursor from '@/components/Cursor';
 import DesktopWrapper from '@/components/DesktopWrapper';
 import MenuBar from '@/components/MenuBar';
 import Shortcuts from '@/components/Shortcuts';
-import SmallScreen from '@/components/SmallScreen';
 import Taskbar from '@/components/Taskbar';
 import { buildSearchIndex } from '@/lib/search-index';
 
@@ -24,11 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       {/* The OS shell lives in layout so navigation never unmounts it. */}
-      <body className="relative h-screen overflow-hidden font-sans antialiased">
+      <body className="relative min-h-screen font-sans antialiased md:h-screen md:overflow-hidden">
         {/*
           `display: contents` rather than a real box, so the shell's absolutely
           positioned parts still resolve against <body> exactly as before — and
-          `hidden` below md, where the desktop metaphor has no room to work.
+          `hidden` below md, where Boring Mode takes over instead.
         */}
         <div className="hidden md:contents">
           <DesktopWrapper />
@@ -39,18 +38,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               since a chat panel needs the desktop it points at. */}
           <Assistant />
           <Shortcuts />
-          {children}
         </div>
 
-        <SmallScreen />
+        {/* Boring Mode. Outside the gate because these *are* the narrow-screen
+            rendering — each page hides itself at `md` and up, where the shell
+            above takes over. */}
+        {children}
 
         {/* Outside the gate: a narrow window on a desktop is still a desktop, and
             the notice deserves the same cursor as everything else. It decides for
             itself whether to run, on pointer type rather than width. */}
         <Cursor />
 
-        {/* Outside it too, so visits that only ever see the small-screen notice
-            still count. */}
+        {/* Outside it too, so Boring Mode visits are counted like any other. */}
         <Analytics />
       </body>
     </html>
