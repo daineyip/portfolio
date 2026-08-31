@@ -223,6 +223,35 @@ serves anything but a portfolio.
 - **CommandPalette** — global search on ⌘K, plus a search field in the menu bar so the feature is findable without knowing the shortcut. Searches node labels, folder paths **and the prose inside the documents**; ranking is label-exact → label-prefix → label-contains → path → body, so typing a folder's name never buries it under the documents that mention it. A body hit renders a snippet with the match lit in accent yellow — paper yellow on the selected row, which is itself accent. Opening a result goes through `useOpenNode()`, the same call the desktop, Explorer and the menu bar make: search is a way *in*, not a fifth definition of what opening means. Overlay sits at `z-40`, above the menu bar and taskbar (`z-10`) and below `Cursor` (`z-50`). Open/closed state is `store/useSearch.ts`, its own store for the same reason as `useHint`: the palette is not a window and must not churn window state.
 - **Cursor** — replaces the pointer with a circle, black ringed in paper (`HALO`) so it stays visible over black chrome as well as the pale desktop, that reads what it is over: a small glyph inside it says what the click does (`+` to open, `↗` to leave the site, a move mark on a drag handle), a hollow ring marks a plain button — an intro chip included, since expanding one is a press like any other, and a caret bar marks a text field. It deliberately stays close to pointer-sized — a cursor that swells into a label is a cursor that covers the thing you are pointing at, and with the native pointer hidden there is no arrow tip left to aim with. Where a target is too small to aim at, the fix belongs to the target, not the cursor: the traffic lights grow to meet the pointer (see **AppWindow**). What it becomes is decided in two passes — `data-cursor` wins where a component knows something the DOM cannot say (a `DesktopIcon`, an `OpenLink` and a `MenuBar` item *inside* a menu each know whether the node behind them is a link or something that opens in the desktop, while the bar's own top-level buttons stay plain chrome; a title bar knows it is a drag handle), and everything else falls back to what the element *is* (`input`, `a[href]`, `button`), so ordinary controls need no annotation. Shapes are a table of **fixed** widths and heights animated as numbers — no layout measuring, no transform scaling, so `rounded-full` ends stay round at every size between. Three guards: it only activates on `(pointer: fine)`, and it adds `.no-native-cursor` from script rather than markup, so no-JS and touch visitors keep a real cursor; and it hides over an `<iframe>` (the PDF viewer), whose pointer events never reach the page.
 - **IntroCard** — the wallpaper intro, centred on the desktop: three lines from `INTRO` in `data/tree.ts`, each a fragment of text ending in a chip (role, city, current company) that expands in place to a longer clause. Wallpaper you can poke at — not a window, no store; the layer holding it is `pointer-events-none` so the rest of the desktop stays clickable, and it recedes with the icons while `peeking`. Two rules keep the motion smooth, and both are structural: **one chip per line, every line `whitespace-nowrap`**, so an opening chip only widens its own line and the text never rewraps (a rewrap is a jump no animation can smooth over); and **no Framer `layout` anywhere in it** — layout animation moves a box by projecting a transform, and the radius correction can't hold a `rounded-full` pill together while the box scales, so the ends pop between radii. The chip instead animates the real width of its clause, which is a genuine layout change: no transform, no distortion, and the centred line slides continuously around it. Timing is one long ease-out (`DURATION`/`EASE` at the top of the file), collapsing to zero under `prefers-reduced-motion`.
+- **Inbox / `app/api/contact`** — the compose window, and the only way to reach
+  Daine. Send `POST`s to an edge route that hands the message to **Resend**
+  server-side; it used to build a `mailto:` and hand off to the visitor's mail app.
+  The reason for the change is not the nicer send — it is that a `mailto:` needs
+  the address written into the page, and it was: `CONTACT.email` lived in
+  `data/tree.ts`, which client components import, so the address shipped in the
+  served HTML for any scraper to take.
+  **The address is now a secret.** `CONTACT` carries the *name only*; the address
+  is `CONTACT_EMAIL`, read solely by the route. Nothing in the client bundle knows
+  where a message goes — the "To" line is a name, the destination is not the
+  visitor's to choose, and `lib/portfolio-context.ts` no longer puts the address in
+  the assistant's prompt either, so it cannot recite one. That last one is easy to
+  miss: hiding a string from the bundle does nothing if a chatbot can be asked for
+  it. The prompt points at <Open id="app-inbox"> instead.
+  Reply-to is **required**, where the mailto version could leave it blank: mail
+  arrives from the sending domain, so without it there is no way back to whoever
+  wrote. Guards are same-origin, per-field length caps, and a **honeypot** — an
+  off-screen unlabelled `website` field that only a bot fills, answered with the
+  same `{ok:true}` a real send gets, since telling a bot it was caught teaches
+  whoever wrote it to skip the field next time. There is deliberately **no rate
+  limit**: an edge function has no shared memory to count in, so that belongs in
+  front of the route.
+  `CONTACT_FROM` defaults to Resend's shared `onboarding@resend.dev`, which can
+  only deliver to the address that owns the Resend account — sufficient here, since
+  that is the only place it ever sends. Point it at a verified domain to stop
+  relying on that.
+  Boring Mode reaches the same component at `/app-inbox`
+  (`components/boring/MessagePage.tsx`), so there is one compose UI and one send
+  path rather than a phone-shaped second copy.
 - **Assistant** — the chat panel in the bottom-right corner of the wallpaper, and
   the front end for `/api/chat`. Deliberately **not** a window and so deliberately
   not in `useWindowStore`: no title bar, never in the taskbar, can't be dragged or

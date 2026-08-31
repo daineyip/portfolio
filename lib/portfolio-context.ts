@@ -1,6 +1,5 @@
 import {
   BIO,
-  CONTACT,
   DESKTOP,
   INTRO,
   MENU_BAR,
@@ -182,7 +181,6 @@ const FACTS = [
   `Name: ${BIO.name}`,
   `Role: ${BIO.role}`,
   `Location: ${BIO.location}`,
-  `Email: ${CONTACT.email}`,
   `Availability: ${STATUS_OPTIONS[STATUS].label}`,
   ...INTRO.lines.map((line) => `${line.before} ${line.chip.label} — ${line.chip.more}`),
 ].join('\n');
@@ -242,6 +240,12 @@ Worked examples — match this length, not just this format:
 
   Q: does he know Kubernetes?
   A: Not something the desktop covers — <Open id="app-inbox">ask him</Open>.
+
+## Contact
+
+You do not have Daine's email address and must never guess at one. Anyone who
+wants to reach him goes through <Open id="app-inbox">the message window</Open>,
+which sends it to him directly.
 
 ## Truthfulness
 
