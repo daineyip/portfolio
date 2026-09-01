@@ -432,10 +432,17 @@ export const STATUS_OPTIONS: Record<StatusKey, { label: string; dot: string; liv
 
 export const STATUS: StatusKey = 'busy';
 
-/** Hero fields for the bio page; the prose itself lives in content/identity/bio.mdx. */
+/**
+ * Who the Inbox is addressed to — the **name only**.
+ *
+ * The address deliberately is not here. This file is imported by client
+ * components, so anything in it is served in the page source and readable by any
+ * scraper; the address used to sit right here and was. It now lives in
+ * `CONTACT_EMAIL`, read only by app/api/contact/route.ts, and the Inbox says who
+ * the message is going to without saying where.
+ */
 export const CONTACT = {
   name: 'Daine Yip',
-  email: 'daineyip@icloud.com',
 };
 
 export const BIO = {
