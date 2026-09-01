@@ -16,6 +16,9 @@
  * Nothing in the client bundle knows where the message goes. The visitor names
  * themselves and their reply address; the destination is not theirs to choose.
  *
+ * Rate limited per IP — see lib/rate-limit.ts for the two backends and why it
+ * fails open.
+ *
  *   RESEND_API_KEY  required
  *   CONTACT_EMAIL   required — where the mail lands. Never sent to the client.
  *   CONTACT_FROM    the verified sender. Defaults to Resend's shared
@@ -24,11 +27,21 @@
  *                   only place this ever sends. Set it to an address on your own
  *                   verified domain to stop relying on that.
  */
+import { rateLimit } from '@/lib/rate-limit';
+
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 const RESEND_URL = 'https://api.resend.com/emails';
 const DEFAULT_FROM = 'Portfolio <onboarding@resend.dev>';
+
+/*
+ * Three an hour from one address. A person writing to a portfolio sends one, and
+ * two if they forgot something; anything past that is either a mistake or a script,
+ * and both are better off waiting. Deliberately not per-day as well — the point is
+ * to make flooding pointless, not to ration a genuine conversation.
+ */
+const LIMIT = { max: 3, windowSeconds: 60 * 60 };
 
 /* Caps, not validation: they bound what one request can cost and keep a pasted
    novel out of the inbox. The lengths are generous for a real message. */
@@ -88,6 +101,23 @@ export async function POST(req: Request) {
   }
   if (parsed === 'spam') return Response.json({ ok: true }); // see the honeypot note
   if (!parsed) return fail('Please fill in every field with something reasonable.', 400);
+
+  /* Counted here rather than at the top of the handler: malformed junk should not
+     burn a real visitor's budget, and this is still before the send, so nothing
+     over the limit ever costs a Resend call. */
+  const { ok, retryAfter } = await rateLimit(req, 'contact', LIMIT);
+  if (!ok) {
+    const minutes = Math.max(1, Math.ceil(retryAfter / 60));
+    return new Response(
+      JSON.stringify({
+        error: `That's a few messages already — try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`,
+      }),
+      {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', 'Retry-After': String(retryAfter) },
+      },
+    );
+  }
 
   const { name, email, subject, message } = parsed;
 

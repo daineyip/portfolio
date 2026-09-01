@@ -1,4 +1,5 @@
 import { hintFor } from '@/data/tree';
+import { rateLimit } from '@/lib/rate-limit';
 import { NODE_IDS, systemPromptFor } from '@/lib/portfolio-context';
 
 /**
@@ -103,14 +104,33 @@ const MAX_COMPLETION_TOKENS = 150;
    rather than writing. */
 const TEMPERATURE = 0.3;
 
-/* Input caps. An edge function has no shared memory to rate limit with, so these
-   bound what one request can cost rather than how many a visitor can send; put a
-   real limiter in front of this (Vercel WAF, or Upstash keyed by IP) before
-   pointing anything but a portfolio at it. */
+/*
+ * Sixty a minute from one address — a bound on scripted hammering, not on spend.
+ * It is worth being clear about what this does and does not do: at roughly 4.5k
+ * tokens a request, sixty of them is ~270k tokens a minute against a provider
+ * ceiling of 8,000, so the provider's own 429 is what actually stops a flood and
+ * this limit will rarely be the thing that fires. It stops a script opening
+ * thousands of connections; it does not protect the bill. Lower it, or add a
+ * global cap alongside the per-IP one, if cost is the thing to defend.
+ */
+const LIMIT = { max: 60, windowSeconds: 60 };
+
+/* Input caps: these bound what a single request can cost, which is a different
+   question from how many a visitor may send. */
 const MAX_TURNS = 24;
 const MAX_CHARS = 2000;
 
 type Turn = { role: 'user' | 'assistant'; content: string };
+
+/*
+ * Two different 429s, and they are not the same event, so they do not say the same
+ * thing. Ours is a plain quota: this visitor is going too fast, and waiting fixes
+ * it. The provider's means the model itself is out of budget — a fact about the
+ * assistant, not about the person typing — which is what earns it a line with some
+ * character in it.
+ */
+const RATE_LIMITED = 'Rate limit exceeded - Try again in a few moments';
+const TOKENS_SPENT = "Easy on the AI pal, these tokens ain't free!";
 
 const encoder = new TextEncoder();
 const event = (data: unknown) => encoder.encode(`data: ${JSON.stringify(data)}\n\n`);
@@ -215,6 +235,16 @@ export async function POST(req: Request) {
   }
   if (!turns) return fail('Malformed request', 400);
 
+  /* After parsing so malformed junk does not burn a real visitor's budget, and
+     before the upstream call so nothing over the limit costs tokens. */
+  const limit = await rateLimit(req, 'chat', LIMIT);
+  if (!limit.ok) {
+    return new Response(JSON.stringify({ error: RATE_LIMITED }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': String(limit.retryAfter) },
+    });
+  }
+
   /* What the documents are chosen against: the last thing asked, plus the one
      before it, so a follow-up ("what about the second one?") still reaches the
      subject it is following up on. */
@@ -252,9 +282,7 @@ export async function POST(req: Request) {
        the one they can do something about, so it gets a line with a shrug in it
        rather than an apology. Everything else is the site's fault, not theirs. */
     return fail(
-      limited
-        ? "Easy on the AI pal, these tokens ain't free!"
-        : 'Something went wrong reaching the assistant.',
+      limited ? TOKENS_SPENT : 'Something went wrong reaching the assistant.',
       limited ? 429 : 502,
     );
   }

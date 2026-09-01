@@ -214,10 +214,17 @@ ignored the thinking arrives inline. The filter is what keeps a wrong env var a
 config mistake instead of a visitor reading the model's notes to itself.
 
 Guards: same-origin when an `Origin` header is present, a turn cap, a per-message
-length cap, and a 503 when the key is missing. There is deliberately **no rate
-limiter** — an edge function has no shared memory to keep counts in, so that
-belongs in front of the route (Vercel WAF, or Upstash keyed by IP) before this
-serves anything but a portfolio.
+length cap, a 503 when the key is missing, and **60 requests a minute per IP**
+(`lib/rate-limit.ts`, shared with the contact route).
+
+Be clear about what that limit is for. At ~4.5k tokens a request, sixty of them is
+~270k tokens a minute against a provider ceiling of 8,000 — so the **provider's own
+429 is what actually stops a flood**, and the per-IP limit will rarely be the thing
+that fires. It bounds a script opening thousands of connections; it does not
+protect the bill. Lower it, or add a global cap beside the per-IP one, if cost is
+the thing being defended. Both 429s — ours and the provider's — say the same line
+from one constant: to whoever is typing they are the same event, and two different
+apologies for it would be odd.
 
 ## Components
 - **CommandPalette** — global search on ⌘K, plus a search field in the menu bar so the feature is findable without knowing the shortcut. Searches node labels, folder paths **and the prose inside the documents**; ranking is label-exact → label-prefix → label-contains → path → body, so typing a folder's name never buries it under the documents that mention it. A body hit renders a snippet with the match lit in accent yellow — paper yellow on the selected row, which is itself accent. Opening a result goes through `useOpenNode()`, the same call the desktop, Explorer and the menu bar make: search is a way *in*, not a fifth definition of what opening means. Overlay sits at `z-40`, above the menu bar and taskbar (`z-10`) and below `Cursor` (`z-50`). Open/closed state is `store/useSearch.ts`, its own store for the same reason as `useHint`: the palette is not a window and must not churn window state.
@@ -242,9 +249,22 @@ serves anything but a portfolio.
   wrote. Guards are same-origin, per-field length caps, and a **honeypot** — an
   off-screen unlabelled `website` field that only a bot fills, answered with the
   same `{ok:true}` a real send gets, since telling a bot it was caught teaches
-  whoever wrote it to skip the field next time. There is deliberately **no rate
-  limit**: an edge function has no shared memory to count in, so that belongs in
-  front of the route.
+  whoever wrote it to skip the field next time.
+  **Rate limited to three an hour per IP** (`lib/rate-limit.ts`). A person sends
+  one, and two if they forgot something; past that it is a mistake or a script, and
+  both are better off waiting. Counted after validation but before the send, so
+  malformed junk cannot burn a real visitor's budget and nothing over the limit
+  ever costs a Resend call. The 429 carries `Retry-After`.
+  The counter needs to live outside the process — edge functions run as many
+  short-lived isolates across regions — so it uses **Upstash Redis over REST** when
+  `UPSTASH_REDIS_REST_URL`/`_TOKEN` are set, and an in-process `Map` otherwise. The
+  Map is kept but not trusted: it only sees requests that land on the same isolate,
+  so a distributed flood walks past it, but it stops the common one-script case and
+  makes the limit work in local dev with no account to create. `INCR` + `EXPIRE …
+  NX` in one round trip, where the `NX` is what keeps the window *fixed* — without
+  it a steady trickle would keep pushing the TTL back and the window would never
+  reset. It fails **open**: a contact form that silently swallows messages during
+  someone else's outage is worse than one that lets a burst through.
   `CONTACT_FROM` defaults to Resend's shared `onboarding@resend.dev`, which can
   only deliver to the address that owns the Resend account — sufficient here, since
   that is the only place it ever sends. Point it at a verified domain to stop
