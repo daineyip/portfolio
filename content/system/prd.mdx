@@ -45,4 +45,13 @@ Framer Motion handles dragging and animations.
 Content is MDX. All the prose styling lives in one file at the root, so the .mdx files
 are just writing. Labels and ordering are TypeScript.
 
-No backend... for now.
+Two Vercel edge functions:
+
+`/api/chat` is the assistant using Qwen on Groq. Its prompt is built from
+`data/tree.ts` plus the documents a question matches. It points at nodes with the
+same `<Open>` tag the documents use to give hints to the user.
+
+`/api/contact` is an email function using Resend. This allows users to contact me without leaving
+the app.
+
+Both rate limited per IP.

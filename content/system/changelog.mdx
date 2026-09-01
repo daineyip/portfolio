@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-08-31
+
+- Added Boring Mode proper under 768px, replacing the "use a bigger screen" notice:
+  an intro, a tile per experience, and a page per folder and document at `/[node]`
+- Added a footer — the sign-off and the ways to reach me
+- Added `/api/chat`, an edge function: the assistant that knows the desktop
+- Added the assistant panel, bottom right of the wallpaper, collapsing to a bubble
+- Answers point at things with the same `<Open>` tag the documents use, so the
+  icon holding the answer pulses while the sentence naming it is still typing
+- Added `hintFor`: a hint resolves to the nearest thing actually on screen, so a
+  link to `work-binance` pulses **Work Experience** instead of nothing
+- The assistant is sent only the documents a question reaches for, not all sixteen
+- Added `/api/contact`, an edge function: the Inbox sends through Resend now
+  instead of handing off to a `mailto:`
+- Took my address out of the bundle — it was in the page source for any scraper.
+  It lives on the server now, and the Inbox says who a message is going to
+  without saying where
+- Added a honeypot and rate limiting: 60 a minute for the assistant, 3 an hour
+  for the Inbox
+- Moved document text extraction to `scripts/build-content.mjs` and `npm run
+  content`, so search and the assistant read one artifact and can't disagree
+
 ## 2026-08-27
 
 - Added global search on `Cmd/Ctrl+K`, over labels, paths and document text

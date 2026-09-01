@@ -2,31 +2,6 @@
 
 What's next for this desktop, roughly in the order I'd build it.
 
-## Real email
-
-The Inbox hands off to a `mailto:`, which asks the visitor to finish the job in
-another app — and only works if they have one. The address ships in the bundle
-either way, so it's scrapeable whatever the window shows.
-
-- **Resend** over Twilio SendGrid — built for transactional mail, not volume
-- Send from a route handler, so the key stays on the server. `send()` in
-  `Inbox.tsx` is the only thing that changes
-- Honeypot and rate limiting before it's public
-- Keep a `mailto:` fallback for when the send fails
-
-## A chatbot that knows the desktop
-
-Ask about the work instead of opening folders until you find it.
-
-- `lib/search-index.ts` already has every document as plain text — that's the
-  system prompt, and `data/tree.ts` is the map
-- Give it the desktop as tools, not just text: open a node, search, list what's
-  open. `useOpenNode()` means it can *open* the Binance work rather than describe it
-- Route handler, `@anthropic-ai/sdk`, `claude-opus-5`, streaming
-- Prompt caching — the document text is a big unchanging prefix
-- Another `appType` with its own template, so it windows like everything else
-- Spend ceiling and rate limiting before it's public
-
 ## Dark mode
 
 The palette is already tokens in `app/globals.css`, so it's mostly a second set of
